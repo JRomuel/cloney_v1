@@ -1,0 +1,5 @@
+.toolbar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--p-color-border);
+  background-color: var(--p-color-bg);
+}

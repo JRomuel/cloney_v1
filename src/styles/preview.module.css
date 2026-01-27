@@ -1,0 +1,79 @@
+/* Preview CSS Variables and Utilities */
+
+/* Default theme colors - these are overridden by inline styles */
+:root {
+  --preview-primary: #000000;
+  --preview-secondary: #666666;
+  --preview-background: #ffffff;
+  --preview-text: #333333;
+  --preview-accent: #0066cc;
+  --preview-heading-font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --preview-body-font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Reset styles for preview */
+.previewReset {
+  box-sizing: border-box;
+}
+
+.previewReset *,
+.previewReset *::before,
+.previewReset *::after {
+  box-sizing: inherit;
+}
+
+.previewReset img {
+  max-width: 100%;
+  height: auto;
+}
+
+.previewReset a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.previewReset button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Utility classes */
+.textCenter {
+  text-align: center;
+}
+
+.textLeft {
+  text-align: left;
+}
+
+.textRight {
+  text-align: right;
+}
+
+.flexCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.section {
+  padding: 80px 20px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: 40px 12px;
+  }
+}

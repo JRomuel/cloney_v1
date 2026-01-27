@@ -1,0 +1,75 @@
+.footer {
+  background-color: color-mix(in srgb, var(--preview-text) 95%, var(--preview-background));
+  color: var(--preview-background);
+  padding: 60px 20px 30px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logo {
+  font-family: var(--preview-heading-font), sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.description {
+  font-size: 14px;
+  opacity: 0.7;
+  line-height: 1.6;
+}
+
+.heading {
+  font-family: var(--preview-heading-font), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.links a {
+  color: var(--preview-background);
+  text-decoration: none;
+  font-size: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.links a:hover {
+  opacity: 1;
+}
+
+.bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+  text-align: center;
+}
+
+.bottom p {
+  font-size: 12px;
+  opacity: 0.6;
+}

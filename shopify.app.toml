@@ -1,0 +1,44 @@
+# Shopify CLI configuration file
+# This file is used by Shopify CLI for local development
+
+name = "Cloney"
+client_id = "${SHOPIFY_API_KEY}"
+application_url = "${NEXT_PUBLIC_APP_URL}"
+embedded = true
+
+[access_scopes]
+# Include the scopes your app needs
+scopes = "write_themes,read_themes,write_products,read_products"
+
+[auth]
+redirect_urls = [
+  "${NEXT_PUBLIC_APP_URL}/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-10"
+
+  [webhooks.subscriptions]
+
+    [[webhooks.subscriptions.topics]]
+    topics = ["app/uninstalled"]
+    uri = "/api/webhooks/app-uninstalled"
+
+    [[webhooks.subscriptions.topics]]
+    topics = ["customers/data_request"]
+    uri = "/api/webhooks/gdpr/customers-data-request"
+
+    [[webhooks.subscriptions.topics]]
+    topics = ["customers/redact"]
+    uri = "/api/webhooks/gdpr/customers-redact"
+
+    [[webhooks.subscriptions.topics]]
+    topics = ["shop/redact"]
+    uri = "/api/webhooks/gdpr/shop-redact"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "${DEV_STORE_URL}"

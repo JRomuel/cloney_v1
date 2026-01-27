@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id                 String       @id @default(cuid())
+  domain             String       @unique // e.g., "my-store.myshopify.com"
+  accessToken        String       // Encrypted access token
+  scopes             String       // Comma-separated scopes
+  installedAt        DateTime     @default(now())
+  uninstalledAt      DateTime?    // Set when app is uninstalled
+  plan               String       @default("free")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  generations        Generation[]
+  products           Product[]
+
+  @@index([domain])
+}
+
+model Generation {
+  id                 String       @id @default(cuid())
+  shopId             String
+  shop               Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sourceUrl          String       // URL that was analyzed
+  status             String       @default("pending") // pending, scraping, analyzing, editing, creating_theme, creating_products, completed, failed
+  progress           Int          @default(0) // 0-100
+  errorMessage       String?      // Error message if failed
+  themeId            String?      // Shopify theme ID
+  themeName          String?      // Generated theme name
+  scrapedData        String?      // JSON blob of scraped content
+  aiResponse         String?      // JSON blob of AI-generated content
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  products           Product[]
+  editorSession      EditorSession?
+
+  @@index([shopId])
+  @@index([status])
+}
+
+model EditorSession {
+  id                 String       @id @default(cuid())
+  generationId       String       @unique
+  generation         Generation   @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  homepageContent    String?      // JSON: HomepageContent
+  productsContent    String?      // JSON: EditableProduct[]
+  stylesContent      String?      // JSON: StyleSettings
+
+  status             String       @default("editing") // editing, importing, imported
+  importedThemeId    String?
+  importedAt         DateTime?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([generationId])
+}
+
+model Product {
+  id                 String       @id @default(cuid())
+  shopId             String
+  shop               Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  generationId       String?
+  generation         Generation?  @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  shopifyProductId   String?      // Shopify product GID
+  title              String
+  description        String?
+  price              Float        @default(0)
+  imageUrl           String?
+  tags               String?      // Comma-separated tags
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([shopId])
+  @@index([generationId])
+  @@index([shopifyProductId])
+}
