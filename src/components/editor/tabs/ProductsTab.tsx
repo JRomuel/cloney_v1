@@ -1,6 +1,6 @@
 'use client';
 
-import { BlockStack, Text, Button, EmptyState, Card } from '@shopify/polaris';
+import { BlockStack, Text, EmptyState, Card } from '@shopify/polaris';
 import { useEditorStore } from '@/stores/editorStore';
 import { ProductList } from '../products/ProductList';
 
@@ -21,31 +21,28 @@ export function ProductsTab() {
     <BlockStack gap="500">
       <BlockStack gap="200">
         <Text as="h3" variant="headingSm">
-          Products ({products.length})
+          Product
         </Text>
         <Text as="p" tone="subdued">
-          Edit product details before importing to Shopify. Products will be created as drafts.
+          Edit your product details before importing to Shopify. The product will be created as a draft.
         </Text>
       </BlockStack>
 
       {products.length === 0 ? (
         <Card>
           <EmptyState
-            heading="No products yet"
+            heading="No product yet"
             action={{
               content: 'Add product',
               onAction: handleAddProduct,
             }}
             image=""
           >
-            <p>Add products to import them to your Shopify store.</p>
+            <p>Add a product to import to your Shopify store.</p>
           </EmptyState>
         </Card>
       ) : (
-        <>
-          <ProductList />
-          <Button onClick={handleAddProduct}>Add Product</Button>
-        </>
+        <ProductList />
       )}
     </BlockStack>
   );

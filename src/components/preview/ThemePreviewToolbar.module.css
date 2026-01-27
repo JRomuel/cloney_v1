@@ -1,0 +1,9 @@
+.toolbar {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.themeSelector {
+  min-width: 150px;
+}

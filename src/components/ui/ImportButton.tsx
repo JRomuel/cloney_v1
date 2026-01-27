@@ -14,8 +14,8 @@ import { useEditorStore } from '@/stores/editorStore';
 
 interface ImportButtonProps {
   shopDomain: string;
-  onSuccess?: (result: { themeId: string; themeName: string; productsCreated: number }) => void;
-  onError?: (error: string) => void;
+  onSuccess?: (_result: { themeId: string; themeName: string; productsCreated: number }) => void;
+  onError?: (_error: string) => void;
 }
 
 export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonProps) {
@@ -122,7 +122,7 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
               <Spinner size="large" />
               <Text as="p">Creating your store...</Text>
               <Text as="p" tone="subdued">
-                This may take a minute. Please don't close this window.
+                This may take a minute. Please do not close this window.
               </Text>
             </BlockStack>
           )}

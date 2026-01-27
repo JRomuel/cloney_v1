@@ -1,0 +1,118 @@
+{
+  "config": {
+    "id": "dawn",
+    "name": "Shopify Dawn",
+    "version": "15.0.0",
+    "previewImage": "/themes/dawn/preview.png",
+    "source": "bundled"
+  },
+  "sections": [
+    {
+      "type": "image-banner",
+      "name": "Image Banner",
+      "liquidFile": "sections/image-banner.liquid",
+      "editorType": "hero",
+      "cssFile": "assets/section-image-banner.css"
+    },
+    {
+      "type": "multicolumn",
+      "name": "Multicolumn",
+      "liquidFile": "sections/multicolumn.liquid",
+      "editorType": "features",
+      "cssFile": "assets/section-multicolumn.css"
+    },
+    {
+      "type": "multicolumn-testimonials",
+      "name": "Testimonials",
+      "liquidFile": "sections/multicolumn.liquid",
+      "editorType": "testimonials",
+      "cssFile": "assets/section-multicolumn.css"
+    },
+    {
+      "type": "featured-collection",
+      "name": "Featured Collection",
+      "liquidFile": "sections/featured-collection.liquid",
+      "editorType": "products",
+      "cssFile": "assets/section-featured-collection.css"
+    },
+    {
+      "type": "rich-text",
+      "name": "Rich Text",
+      "liquidFile": "sections/rich-text.liquid",
+      "editorType": "text",
+      "cssFile": "assets/section-rich-text.css"
+    },
+    {
+      "type": "multicolumn-gallery",
+      "name": "Gallery",
+      "liquidFile": "sections/multicolumn.liquid",
+      "editorType": "gallery",
+      "cssFile": "assets/section-multicolumn.css"
+    }
+  ],
+  "layout": {
+    "theme": "layout/theme.liquid",
+    "header": "sections/header.liquid",
+    "footer": "sections/footer.liquid"
+  },
+  "snippets": [
+    "snippets/card-product.liquid",
+    "snippets/price.liquid",
+    "snippets/icon-cart.liquid"
+  ],
+  "assets": {
+    "css": [
+      "assets/base.css",
+      "assets/section-header.css",
+      "assets/section-footer.css"
+    ]
+  },
+  "settingsSchema": {
+    "colors": [
+      {
+        "id": "colors_primary",
+        "label": "Primary",
+        "default": "#121212",
+        "cssVariable": "--color-foreground"
+      },
+      {
+        "id": "colors_secondary",
+        "label": "Secondary",
+        "default": "#666666",
+        "cssVariable": "--color-foreground-secondary"
+      },
+      {
+        "id": "colors_background",
+        "label": "Background",
+        "default": "#ffffff",
+        "cssVariable": "--color-background"
+      },
+      {
+        "id": "colors_text",
+        "label": "Text",
+        "default": "#121212",
+        "cssVariable": "--color-foreground"
+      },
+      {
+        "id": "colors_accent",
+        "label": "Accent",
+        "default": "#121212",
+        "cssVariable": "--color-button"
+      }
+    ],
+    "typography": [
+      {
+        "id": "type_header_font",
+        "label": "Heading Font",
+        "default": "Assistant",
+        "cssVariable": "--font-heading-family"
+      },
+      {
+        "id": "type_body_font",
+        "label": "Body Font",
+        "default": "Assistant",
+        "cssVariable": "--font-body-family"
+      }
+    ]
+  }
+}

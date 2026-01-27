@@ -1,0 +1,265 @@
+<section class="main-product page-width section-{{ section.id }}-padding">
+  <div class="product product--{{ section.settings.media_size }} product--{{ section.settings.gallery_layout }}{% if product.media.size > 0 %} grid{% endif %}">
+    <div class="product__media-wrapper{% if product.media.size > 0 %} grid__item{% endif %}">
+      {% if product.featured_media %}
+        <div class="product__media media media--transparent">
+          <img
+            src="{{ product.featured_media.src | image_url: width: 1100 }}"
+            alt="{{ product.featured_media.alt | escape }}"
+            loading="eager"
+            width="{{ product.featured_media.width }}"
+            height="{{ product.featured_media.height }}"
+          >
+        </div>
+      {% else %}
+        <div class="product__media media media--placeholder">
+          {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="product__info-wrapper grid__item">
+      <div class="product__info-container{% if section.settings.enable_sticky_info %} product__info-container--sticky{% endif %}">
+        {% for block in section.blocks %}
+          {% case block.type %}
+            {% when 'text' %}
+              <p class="product__text{% if block.settings.text_style == 'uppercase' %} caption-with-letter-spacing{% endif %}" {{ block.shopify_attributes }}>
+                {{ block.settings.text }}
+              </p>
+            {% when 'title' %}
+              <h1 class="product__title h1" {{ block.shopify_attributes }}>
+                {{ product.title | escape }}
+              </h1>
+            {% when 'price' %}
+              <div class="product__price" {{ block.shopify_attributes }}>
+                {% render 'price', product: product %}
+              </div>
+            {% when 'description' %}
+              {% if product.description != blank %}
+                <div class="product__description rte" {{ block.shopify_attributes }}>
+                  {{ product.description }}
+                </div>
+              {% endif %}
+            {% when 'buy_buttons' %}
+              <div class="product__buy-buttons" {{ block.shopify_attributes }}>
+                <button type="submit" name="add" class="button button--primary button--full-width">
+                  Add to cart
+                </button>
+              </div>
+            {% when 'variant_picker' %}
+              {% if product.has_only_default_variant == false %}
+                <div class="product__variants" {{ block.shopify_attributes }}>
+                  {% for option in product.options_with_values %}
+                    <div class="product__variant-option">
+                      <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
+                        {{ option.name }}
+                      </label>
+                      <select
+                        id="Option-{{ section.id }}-{{ forloop.index0 }}"
+                        class="select__select"
+                        name="options[{{ option.name | escape }}]"
+                      >
+                        {% for value in option.values %}
+                          <option value="{{ value | escape }}">
+                            {{ value }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% when 'quantity_selector' %}
+              <div class="product__quantity" {{ block.shopify_attributes }}>
+                <label class="form__label" for="Quantity-{{ section.id }}">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  id="Quantity-{{ section.id }}"
+                  class="quantity__input"
+                  name="quantity"
+                  min="1"
+                  value="1"
+                >
+              </div>
+          {% endcase %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Product information",
+  "tag": "section",
+  "class": "section",
+  "blocks": [
+    {
+      "type": "text",
+      "name": "Text",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "default": "Text",
+          "label": "Text"
+        },
+        {
+          "type": "select",
+          "id": "text_style",
+          "options": [
+            {
+              "value": "body",
+              "label": "Body"
+            },
+            {
+              "value": "uppercase",
+              "label": "Uppercase"
+            }
+          ],
+          "default": "body",
+          "label": "Text style"
+        }
+      ]
+    },
+    {
+      "type": "title",
+      "name": "Title",
+      "limit": 1
+    },
+    {
+      "type": "price",
+      "name": "Price",
+      "limit": 1
+    },
+    {
+      "type": "description",
+      "name": "Description",
+      "limit": 1
+    },
+    {
+      "type": "variant_picker",
+      "name": "Variant picker",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "picker_type",
+          "options": [
+            {
+              "value": "dropdown",
+              "label": "Dropdown"
+            },
+            {
+              "value": "button",
+              "label": "Buttons"
+            }
+          ],
+          "default": "button",
+          "label": "Type"
+        }
+      ]
+    },
+    {
+      "type": "quantity_selector",
+      "name": "Quantity selector",
+      "limit": 1
+    },
+    {
+      "type": "buy_buttons",
+      "name": "Buy buttons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_dynamic_checkout",
+          "default": true,
+          "label": "Show dynamic checkout buttons"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_info",
+      "default": true,
+      "label": "Enable sticky content on desktop"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "Media"
+    },
+    {
+      "type": "select",
+      "id": "media_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "default": "large",
+      "label": "Desktop media width"
+    },
+    {
+      "type": "select",
+      "id": "media_fit",
+      "options": [
+        {
+          "value": "contain",
+          "label": "Contain"
+        },
+        {
+          "value": "cover",
+          "label": "Cover"
+        }
+      ],
+      "default": "contain",
+      "label": "Media fit"
+    },
+    {
+      "type": "select",
+      "id": "gallery_layout",
+      "options": [
+        {
+          "value": "stacked",
+          "label": "Stacked"
+        },
+        {
+          "value": "thumbnail",
+          "label": "Thumbnails"
+        },
+        {
+          "value": "thumbnail_slider",
+          "label": "Thumbnail slider"
+        }
+      ],
+      "default": "stacked",
+      "label": "Gallery layout"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_variants",
+      "default": false,
+      "label": "Hide other variants' media after selecting a variant"
+    }
+  ]
+}
+{% endschema %}

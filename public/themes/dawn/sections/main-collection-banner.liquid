@@ -1,0 +1,55 @@
+<div class="collection-banner color-{{ section.settings.color_scheme }} gradient">
+  <div class="page-width">
+    <div class="collection-banner__inner">
+      {% if section.settings.show_collection_image and collection.image %}
+        <div class="collection-banner__image media">
+          <img
+            src="{{ collection.image.src | image_url: width: 1500 }}"
+            alt="{{ collection.image.alt | escape }}"
+            loading="eager"
+            width="{{ collection.image.width }}"
+            height="{{ collection.image.height }}"
+          >
+        </div>
+      {% endif %}
+      <div class="collection-banner__content">
+        <h1 class="collection-banner__title title h0">
+          {{ collection.title | escape }}
+        </h1>
+        {% if section.settings.show_collection_description and collection.description != blank %}
+          <div class="collection-banner__description rte">
+            {{ collection.description }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Collection banner",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_collection_description",
+      "default": true,
+      "label": "Show collection description"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_image",
+      "default": false,
+      "label": "Show collection image"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ]
+}
+{% endschema %}

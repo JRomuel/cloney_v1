@@ -1,0 +1,110 @@
+/* Multicolumn Section CSS */
+
+.multicolumn {
+  padding: var(--spacing-sections-mobile, 24px) 0;
+  background-color: var(--color-background, #ffffff);
+}
+
+@media screen and (min-width: 750px) {
+  .multicolumn {
+    padding: var(--spacing-sections-desktop, 36px) 0;
+  }
+}
+
+.multicolumn-list {
+  gap: 2rem;
+}
+
+@media screen and (min-width: 750px) {
+  .multicolumn-list {
+    gap: 3rem;
+  }
+}
+
+.multicolumn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.multicolumn-card__image-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.multicolumn-card__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.multicolumn-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.multicolumn-card__title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-foreground, #121212);
+  margin: 0;
+}
+
+.multicolumn-card__text {
+  font-size: 1.4rem;
+  line-height: 1.8;
+  color: var(--color-foreground, #121212);
+  opacity: 0.85;
+}
+
+.multicolumn-card__text p {
+  margin: 0;
+}
+
+/* Testimonial-specific styles */
+.multicolumn-card__author {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+}
+
+.multicolumn-card__author-name {
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: var(--color-foreground, #121212);
+}
+
+.multicolumn-card__author-role {
+  font-size: 1.2rem;
+  color: var(--color-foreground, #121212);
+  opacity: 0.7;
+}
+
+/* Quote styling for testimonials */
+.multicolumn-card__text::before {
+  content: none;
+}
+
+/* When used as testimonial, add quote styling */
+.testimonials .multicolumn-card__text {
+  font-style: italic;
+  position: relative;
+  padding-left: 2rem;
+}
+
+.testimonials .multicolumn-card__text::before {
+  content: '"';
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 3rem;
+  line-height: 1;
+  font-family: Georgia, serif;
+  color: var(--color-foreground, #121212);
+  opacity: 0.3;
+}

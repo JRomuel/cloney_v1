@@ -137,20 +137,23 @@ export function ProductCard({ product }: ProductCardProps) {
               </InlineStack>
               <InlineStack gap="200">
                 <div style={{ flex: 1 }}>
-                  <TextField
-                    label=""
-                    labelHidden
-                    value={newTag}
-                    onChange={setNewTag}
-                    placeholder="Add a tag"
-                    autoComplete="off"
-                    onKeyPress={(e: React.KeyboardEvent) => {
+                  <div
+                    onKeyDown={(e: React.KeyboardEvent) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         handleAddTag();
                       }
                     }}
-                  />
+                  >
+                    <TextField
+                      label=""
+                      labelHidden
+                      value={newTag}
+                      onChange={setNewTag}
+                      placeholder="Add a tag"
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
                 <Button onClick={handleAddTag} disabled={!newTag.trim()}>
                   Add

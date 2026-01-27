@@ -1,0 +1,83 @@
+<div class="product-recommendations color-{{ section.settings.color_scheme }} gradient">
+  <div class="page-width">
+    {% if section.settings.heading != blank %}
+      <div class="title-wrapper title-wrapper--center">
+        <h2 class="title inline-richtext {{ section.settings.heading_size }}">
+          {{ section.settings.heading }}
+        </h2>
+      </div>
+    {% endif %}
+
+    {% if recommendations.products.size > 0 %}
+      <ul class="grid product-grid grid--{{ section.settings.columns_desktop }}-col-desktop grid--2-col-tablet-down">
+        {% for product in recommendations.products limit: section.settings.products_to_show %}
+          <li class="grid__item">
+            {% render 'card-product', product: product %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="product-recommendations__empty">No recommendations available.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product recommendations",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "You may also like",
+      "label": "Heading"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "h2",
+          "label": "Small"
+        },
+        {
+          "value": "h1",
+          "label": "Medium"
+        },
+        {
+          "value": "h0",
+          "label": "Large"
+        }
+      ],
+      "default": "h2",
+      "label": "Heading size"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 4,
+      "label": "Number of products to show"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 4,
+      "label": "Number of columns on desktop"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ]
+}
+{% endschema %}

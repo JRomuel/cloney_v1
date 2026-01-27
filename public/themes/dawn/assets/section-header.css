@@ -1,0 +1,112 @@
+/* Header Section CSS */
+
+.header {
+  padding: 1rem 0;
+  background-color: var(--color-background, #ffffff);
+  border-bottom: 1px solid var(--color-border, rgba(18, 18, 18, 0.08));
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header__wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.header__heading-wrapper {
+  flex-shrink: 0;
+}
+
+.header__heading {
+  font-size: 2rem;
+  font-weight: 400;
+  margin: 0;
+}
+
+.header__heading-link {
+  color: var(--color-foreground, #121212);
+  text-decoration: none;
+}
+
+.header__heading-link:hover {
+  text-decoration: none;
+}
+
+.header__nav {
+  flex-grow: 1;
+  display: none;
+}
+
+@media screen and (min-width: 990px) {
+  .header__nav {
+    display: block;
+  }
+}
+
+.header__menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.header__menu-item {
+  display: block;
+}
+
+.header__menu-link {
+  color: var(--color-foreground, #121212);
+  font-size: 1.4rem;
+  letter-spacing: 0.06rem;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.header__menu-link:hover {
+  text-decoration: none;
+}
+
+.header__menu-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.header__menu-link:hover::after {
+  transform: scaleX(1);
+}
+
+.header__icons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  color: var(--color-foreground, #121212);
+  text-decoration: none;
+}
+
+.header__icon svg {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+.header__icon:hover {
+  opacity: 0.7;
+}

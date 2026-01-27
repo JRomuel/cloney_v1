@@ -1,0 +1,69 @@
+<!doctype html>
+<html class="no-js" lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="">
+
+    <title>{{ shop.name }}</title>
+
+    {{ content_for_header }}
+
+    <style>
+      :root {
+        --font-body-family: {{ settings.type_body_font }}, sans-serif;
+        --font-body-style: normal;
+        --font-body-weight: 400;
+        --font-body-weight-bold: 700;
+
+        --font-heading-family: {{ settings.type_header_font }}, sans-serif;
+        --font-heading-style: normal;
+        --font-heading-weight: 400;
+
+        --font-body-scale: 1.0;
+        --font-heading-scale: 1.0;
+
+        --color-base-text: {{ settings.colors_text }};
+        --color-base-background-1: {{ settings.colors_background }};
+        --color-base-background-2: {{ settings.colors_background }};
+        --color-base-solid-button-labels: {{ settings.colors_background }};
+        --color-base-outline-button-labels: {{ settings.colors_primary }};
+        --color-base-accent-1: {{ settings.colors_accent }};
+        --color-base-accent-2: {{ settings.colors_secondary }};
+
+        --color-foreground: {{ settings.colors_text }};
+        --color-background: {{ settings.colors_background }};
+        --color-button: {{ settings.colors_primary }};
+        --color-button-text: {{ settings.colors_background }};
+        --color-link: {{ settings.colors_accent }};
+        --color-border: rgba(18, 18, 18, 0.08);
+
+        --page-width: 120rem;
+        --page-width-margin: 0 auto;
+
+        --grid-desktop-horizontal-spacing: 2rem;
+        --grid-desktop-vertical-spacing: 2rem;
+        --grid-mobile-horizontal-spacing: 1rem;
+        --grid-mobile-vertical-spacing: 1rem;
+
+        --spacing-sections-desktop: 36px;
+        --spacing-sections-mobile: 24px;
+      }
+    </style>
+  </head>
+
+  <body class="gradient">
+    <a class="skip-to-content-link button visually-hidden" href="#MainContent">
+      Skip to content
+    </a>
+
+    {% section 'header' %}
+
+    <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+
+    {% section 'footer' %}
+  </body>
+</html>

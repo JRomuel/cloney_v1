@@ -1,0 +1,116 @@
+<div class="featured-collection color-{{ section.settings.color_scheme }}">
+  <div class="page-width">
+    {% if section.settings.title != blank %}
+      <div class="title-wrapper title-wrapper--{{ section.settings.heading_alignment | default: 'center' }}">
+        <h2 class="title inline-richtext {{ section.settings.heading_size | default: 'h1' }}">
+          {{ section.settings.title }}
+        </h2>
+      </div>
+    {% endif %}
+
+    {% if collection != blank and collection.products.size > 0 %}
+      <ul class="grid product-grid grid--{{ section.settings.columns_desktop | default: 4 }}-col-desktop grid--2-col-tablet-down">
+        {% for product in collection.products limit: section.settings.products_to_show | default: 4 %}
+          <li class="grid__item">
+            {% render 'card-product', product: product, show_vendor: section.settings.show_vendor %}
+          </li>
+        {% endfor %}
+      </ul>
+
+      {% if section.settings.show_view_all and collection.products.size > section.settings.products_to_show %}
+        <div class="center">
+          <a href="{{ collection.url }}" class="button button--secondary">
+            {{ section.settings.view_all_label | default: 'View all' }}
+          </a>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="collection-empty">
+        <p>No products found in this collection.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Featured collection",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Featured collection"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Heading size",
+      "options": [
+        { "value": "h2", "label": "Small" },
+        { "value": "h1", "label": "Medium" },
+        { "value": "h0", "label": "Large" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Maximum products to show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Number of columns on desktop",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "Show vendor",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "Show 'View all' button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "view_all_label",
+      "label": "View all button text",
+      "default": "View all"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Featured collection"
+    }
+  ]
+}
+{% endschema %}

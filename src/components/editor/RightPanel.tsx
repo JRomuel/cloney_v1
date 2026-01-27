@@ -1,7 +1,7 @@
 'use client';
 
-import { LivePreview } from '../preview/LivePreview';
-import { PreviewToolbar } from '../preview/PreviewToolbar';
+import { ThemePreview } from '../preview/ThemePreview';
+import { ThemePreviewToolbar } from '../preview/ThemePreviewToolbar';
 import styles from './RightPanel.module.css';
 
 interface RightPanelProps {
@@ -11,9 +11,9 @@ interface RightPanelProps {
 export function RightPanel({ shopDomain }: RightPanelProps) {
   return (
     <div className={styles.container}>
-      <PreviewToolbar />
+      <ThemePreviewToolbar />
       <div className={styles.previewArea}>
-        <LivePreview />
+        <ThemePreview />
       </div>
     </div>
   );

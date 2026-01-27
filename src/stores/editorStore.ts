@@ -5,11 +5,16 @@ import {
   EditableProduct,
   StyleSettings,
   EditorTab,
+  EditorPage,
   PreviewMode,
   Section,
   HeroContent,
+  ProductPageContent,
+  ContactPageContent,
   defaultHomepageContent,
   defaultStyleSettings,
+  defaultProductPageContent,
+  defaultContactPageContent,
   createSection,
 } from '@/types/editor';
 
@@ -22,8 +27,11 @@ export interface EditorState {
   homepage: HomepageContent;
   products: EditableProduct[];
   styles: StyleSettings;
+  productPage: ProductPageContent;
+  contactPage: ContactPageContent;
 
   // UI
+  activePage: EditorPage;
   activeTab: EditorTab;
   previewMode: PreviewMode;
   isDirty: boolean;
@@ -50,7 +58,22 @@ export interface EditorState {
   updateColor: (key: keyof StyleSettings['colors'], value: string) => void;
   updateFont: (key: keyof StyleSettings['typography'], value: string) => void;
 
+  // Actions - Product Page
+  selectProductForPage: (productId: string | null) => void;
+  updateProductPageLayout: (layout: Partial<ProductPageContent['layout']>) => void;
+  addProductPageSection: (type: Section['type']) => void;
+  updateProductPageSection: (sectionId: string, updates: Partial<Section>) => void;
+  removeProductPageSection: (sectionId: string) => void;
+
+  // Actions - Contact Page
+  updateContactHero: (hero: Partial<ContactPageContent['hero']>) => void;
+  updateContactInfo: (info: Partial<ContactPageContent['contactInfo']>) => void;
+  addContactPageSection: (type: Section['type']) => void;
+  updateContactPageSection: (sectionId: string, updates: Partial<Section>) => void;
+  removeContactPageSection: (sectionId: string) => void;
+
   // Actions - UI
+  setActivePage: (page: EditorPage) => void;
   setActiveTab: (tab: EditorTab) => void;
   setPreviewMode: (mode: PreviewMode) => void;
 
@@ -73,6 +96,9 @@ const initialState = {
   homepage: defaultHomepageContent,
   products: [],
   styles: defaultStyleSettings,
+  productPage: defaultProductPageContent,
+  contactPage: defaultContactPageContent,
+  activePage: 'home' as EditorPage,
   activeTab: 'homepage' as EditorTab,
   previewMode: 'desktop' as PreviewMode,
   isDirty: false,
@@ -171,7 +197,12 @@ export const useEditorStore = create<EditorState>()(
 
       addProduct: (product) =>
         set((state) => ({
-          products: [...state.products, product],
+          // Only allow 1 product - replace instead of append
+          products: [product],
+          productPage: {
+            ...state.productPage,
+            selectedProductId: product.id,
+          },
           isDirty: true,
         })),
 
@@ -197,7 +228,106 @@ export const useEditorStore = create<EditorState>()(
           isDirty: true,
         })),
 
+      // Product Page Actions
+      selectProductForPage: (productId) =>
+        set((state) => ({
+          productPage: {
+            ...state.productPage,
+            selectedProductId: productId,
+          },
+          isDirty: true,
+        })),
+
+      updateProductPageLayout: (layoutUpdates) =>
+        set((state) => ({
+          productPage: {
+            ...state.productPage,
+            layout: { ...state.productPage.layout, ...layoutUpdates },
+          },
+          isDirty: true,
+        })),
+
+      addProductPageSection: (type) =>
+        set((state) => ({
+          productPage: {
+            ...state.productPage,
+            sections: [...state.productPage.sections, createSection(type)],
+          },
+          isDirty: true,
+        })),
+
+      updateProductPageSection: (sectionId, updates) =>
+        set((state) => ({
+          productPage: {
+            ...state.productPage,
+            sections: state.productPage.sections.map((section) =>
+              section.id === sectionId ? { ...section, ...updates } : section
+            ),
+          },
+          isDirty: true,
+        })),
+
+      removeProductPageSection: (sectionId) =>
+        set((state) => ({
+          productPage: {
+            ...state.productPage,
+            sections: state.productPage.sections.filter((s) => s.id !== sectionId),
+          },
+          isDirty: true,
+        })),
+
+      // Contact Page Actions
+      updateContactHero: (heroUpdates) =>
+        set((state) => ({
+          contactPage: {
+            ...state.contactPage,
+            hero: { ...state.contactPage.hero, ...heroUpdates },
+          },
+          isDirty: true,
+        })),
+
+      updateContactInfo: (infoUpdates) =>
+        set((state) => ({
+          contactPage: {
+            ...state.contactPage,
+            contactInfo: { ...state.contactPage.contactInfo, ...infoUpdates },
+          },
+          isDirty: true,
+        })),
+
+      addContactPageSection: (type) =>
+        set((state) => ({
+          contactPage: {
+            ...state.contactPage,
+            sections: [...state.contactPage.sections, createSection(type)],
+          },
+          isDirty: true,
+        })),
+
+      updateContactPageSection: (sectionId, updates) =>
+        set((state) => ({
+          contactPage: {
+            ...state.contactPage,
+            sections: state.contactPage.sections.map((section) =>
+              section.id === sectionId ? { ...section, ...updates } : section
+            ),
+          },
+          isDirty: true,
+        })),
+
+      removeContactPageSection: (sectionId) =>
+        set((state) => ({
+          contactPage: {
+            ...state.contactPage,
+            sections: state.contactPage.sections.filter((s) => s.id !== sectionId),
+          },
+          isDirty: true,
+        })),
+
       // UI Actions
+      setActivePage: (activePage) =>
+        set({ activePage }),
+
       setActiveTab: (activeTab) =>
         set({ activeTab }),
 
@@ -205,16 +335,25 @@ export const useEditorStore = create<EditorState>()(
         set({ previewMode }),
 
       // Session Actions
-      loadFromGeneration: (data) =>
+      loadFromGeneration: (data) => {
+        // Only take the first product (limit to 1) and auto-select it
+        const singleProduct = data.products?.[0] ? [data.products[0]] : [];
+        const selectedProductId = singleProduct[0]?.id || null;
+
         set({
           sessionId: data.sessionId,
           generationId: data.generationId,
           homepage: data.homepage || defaultHomepageContent,
-          products: data.products || [],
+          products: singleProduct,
           styles: data.styles || defaultStyleSettings,
+          productPage: {
+            ...defaultProductPageContent,
+            selectedProductId,
+          },
           isDirty: false,
           lastSavedAt: new Date(),
-        }),
+        });
+      },
 
       markSaved: () =>
         set({
@@ -237,6 +376,9 @@ export const useEditorStore = create<EditorState>()(
         homepage: state.homepage,
         products: state.products,
         styles: state.styles,
+        productPage: state.productPage,
+        contactPage: state.contactPage,
+        activePage: state.activePage,
         activeTab: state.activeTab,
         previewMode: state.previewMode,
       }),

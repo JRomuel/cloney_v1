@@ -110,6 +110,33 @@ export type EditorTab = 'homepage' | 'products' | 'styles';
 export type PreviewMode = 'desktop' | 'mobile';
 export type EditorSessionStatus = 'editing' | 'importing' | 'imported';
 
+// Page Types (for multi-page editor)
+export type EditorPage = 'home' | 'product' | 'contact';
+
+// Product Page Content (single product display)
+export interface ProductPageContent {
+  selectedProductId: string | null;
+  layout: {
+    imagePosition: 'left' | 'right';
+    showRecommendations: boolean;
+  };
+  sections: Section[];
+}
+
+// Contact Page Content
+export interface ContactPageContent {
+  hero: {
+    title: string;
+    subtitle: string;
+  };
+  contactInfo: {
+    email: string;
+    phone: string;
+    address: string;
+  };
+  sections: Section[];
+}
+
 export interface EditorSession {
   id: string;
   generationId: string;
@@ -147,6 +174,28 @@ export const defaultStyleSettings: StyleSettings = {
 
 export const defaultHomepageContent: HomepageContent = {
   hero: defaultHeroContent,
+  sections: [],
+};
+
+export const defaultProductPageContent: ProductPageContent = {
+  selectedProductId: null,
+  layout: {
+    imagePosition: 'left',
+    showRecommendations: true,
+  },
+  sections: [],
+};
+
+export const defaultContactPageContent: ContactPageContent = {
+  hero: {
+    title: 'Contact Us',
+    subtitle: 'We\'d love to hear from you',
+  },
+  contactInfo: {
+    email: 'hello@example.com',
+    phone: '+1 (555) 123-4567',
+    address: '123 Main Street, City, Country',
+  },
   sections: [],
 };
 

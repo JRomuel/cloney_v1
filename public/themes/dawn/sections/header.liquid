@@ -1,0 +1,63 @@
+<header class="header header--top-center">
+  <div class="header__wrapper page-width">
+    <div class="header__heading-wrapper">
+      <h1 class="header__heading">
+        <a href="/" class="header__heading-link">
+          {{ section.settings.logo_text | default: shop.name }}
+        </a>
+      </h1>
+    </div>
+
+    <nav class="header__nav">
+      <ul class="header__menu list-unstyled" role="list">
+        {% for link in section.settings.menu_items %}
+          <li class="header__menu-item">
+            <a href="{{ link.url }}" class="header__menu-link">
+              {{ link.title }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <div class="header__icons">
+      <a href="/cart" class="header__icon header__icon--cart">
+        {% render 'icon-cart' %}
+        <span class="visually-hidden">Cart</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "text",
+      "id": "logo_text",
+      "label": "Logo text",
+      "default": "Store Name"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "menu_item",
+      "name": "Menu item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Link"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "URL"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
