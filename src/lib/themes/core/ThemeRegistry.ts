@@ -159,7 +159,7 @@ export function getThemeRegistry(): ThemeRegistry {
     themeRegistry.registerTheme('dawn', {
       id: 'dawn',
       name: 'Shopify Dawn',
-      version: '15.0.0',
+      version: '15.4.1',
       previewImage: '/themes/dawn/preview.png',
       source: 'bundled',
     });

@@ -57,6 +57,7 @@ export interface ShopifyShop {
   currency: string;
   money_format: string;
   money_with_currency_format: string;
+  customer_accounts_enabled?: boolean;
 }
 
 export interface ShopifyImage {
@@ -104,14 +105,45 @@ export interface ShopifyCollection {
   url: string;
 }
 
+export interface ShopifyColorRgb {
+  red: number;
+  green: number;
+  blue: number;
+  rgb: string;
+}
+
+export interface ShopifyColorScheme {
+  id: string;
+  settings: {
+    background: ShopifyColorRgb;
+    background_gradient: string;
+    text: ShopifyColorRgb;
+    shadow: ShopifyColorRgb;
+    button: ShopifyColorRgb;
+    button_label: ShopifyColorRgb;
+    secondary_button_label: ShopifyColorRgb;
+  };
+}
+
+export interface ShopifyFont {
+  family: string;
+  fallback_families: string;
+  style: string;
+  weight: string;
+  system: boolean;
+}
+
 export interface ShopifySettings {
   colors_primary: string;
   colors_secondary: string;
   colors_background: string;
   colors_text: string;
   colors_accent: string;
-  type_header_font: string;
-  type_body_font: string;
+  type_header_font: ShopifyFont | string;
+  type_body_font: ShopifyFont | string;
+  color_schemes?: ShopifyColorScheme[];
+  // Allow additional settings used by Dawn theme
+  [key: string]: unknown;
 }
 
 // Section block types for Liquid templates
@@ -151,6 +183,8 @@ export interface LiquidRenderContext {
   collection?: ShopifyCollection;
   collections?: Record<string, ShopifyCollection>;
   all_products?: Record<string, ShopifyProduct>;
+  // Section contexts for header/footer rendering via {% section %} tag
+  sections?: Record<string, LiquidSection>;
   // Index signature for Record<string, unknown> compatibility
   [key: string]: unknown;
 }

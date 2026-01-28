@@ -10,7 +10,11 @@
       "Bash(test:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npx tsc:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

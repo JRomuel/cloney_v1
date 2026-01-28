@@ -26,14 +26,64 @@ function GeneratePageContent() {
   const { loadFromGeneration, reset: resetEditor, sessionId } = useEditorStore();
   const { isSaving, isDirty } = useEditorPersistence();
 
-  // Get shop from URL params on mount
+  // Load a generation by ID into the editor
+  const loadGeneration = useCallback(
+    async (genId: string) => {
+      setIsLoading(true);
+      setError(null);
+      setLoading(true);
+
+      try {
+        // Create or fetch editor session for the generation
+        const response = await fetch('/api/editor/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ generationId: genId }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load editor session');
+        }
+
+        const sessionData = await response.json();
+
+        loadFromGeneration({
+          sessionId: sessionData.id,
+          generationId: genId,
+          homepage: sessionData.homepage,
+          products: sessionData.products,
+          styles: sessionData.styles,
+        });
+
+        setGenerationId(genId);
+        setViewState('editing');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load generation';
+        setError(message);
+        showToast(message, true);
+      } finally {
+        setIsLoading(false);
+        setLoading(false);
+      }
+    },
+    [loadFromGeneration, showToast, setLoading]
+  );
+
+  // Get shop and generationId from URL params on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shopParam = params.get('shop');
+    const generationIdParam = params.get('generationId');
+
     if (shopParam) {
       setShop(shopParam);
     }
-  }, []);
+
+    // If generationId is present, load that generation into the editor
+    if (generationIdParam && shopParam) {
+      loadGeneration(generationIdParam);
+    }
+  }, [loadGeneration]);
 
   const handleSubmit = useCallback(
     async (url: string) => {

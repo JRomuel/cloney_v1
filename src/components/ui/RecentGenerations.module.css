@@ -1,0 +1,77 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--p-color-border-subdued);
+  cursor: pointer;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background-color: var(--p-color-bg-surface-hover);
+  margin: 0 -12px;
+  padding: 8px 12px;
+}
+
+.title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--p-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.attention {
+  background-color: var(--p-color-bg-fill-warning);
+  color: var(--p-color-text-warning);
+}
+
+.success {
+  background-color: var(--p-color-bg-fill-success);
+  color: var(--p-color-text-success);
+}
+
+.info {
+  background-color: var(--p-color-bg-fill-info);
+  color: var(--p-color-text-info);
+}
+
+.critical {
+  background-color: var(--p-color-bg-fill-critical);
+  color: var(--p-color-text-critical);
+}
+
+.time {
+  font-size: 12px;
+  color: var(--p-color-text-secondary);
+  white-space: nowrap;
+}
+
+.loading {
+  color: var(--p-color-text-secondary);
+  font-size: 14px;
+}
+
+.empty {
+  color: var(--p-color-text-secondary);
+  font-size: 14px;
+  margin: 0;
+}

@@ -61,6 +61,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+// POST - Update an editor session (for sendBeacon which only supports POST)
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  return PUT(request, { params });
+}
+
 // PUT - Update an editor session (auto-save)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {

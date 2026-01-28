@@ -2,7 +2,7 @@
   "config": {
     "id": "dawn",
     "name": "Shopify Dawn",
-    "version": "15.0.0",
+    "version": "15.4.1",
     "previewImage": "/themes/dawn/preview.png",
     "source": "bundled"
   },
@@ -32,8 +32,7 @@
       "type": "featured-collection",
       "name": "Featured Collection",
       "liquidFile": "sections/featured-collection.liquid",
-      "editorType": "products",
-      "cssFile": "assets/section-featured-collection.css"
+      "editorType": "products"
     },
     {
       "type": "rich-text",
@@ -53,18 +52,36 @@
   "layout": {
     "theme": "layout/theme.liquid",
     "header": "sections/header.liquid",
-    "footer": "sections/footer.liquid"
+    "footer": "sections/footer.liquid",
+    "announcement-bar": "sections/announcement-bar.liquid"
   },
   "snippets": [
     "snippets/card-product.liquid",
     "snippets/price.liquid",
-    "snippets/icon-cart.liquid"
+    "snippets/icon-cart.liquid",
+    "snippets/meta-tags.liquid",
+    "snippets/header-drawer.liquid",
+    "snippets/header-search.liquid",
+    "snippets/header-dropdown-menu.liquid",
+    "snippets/header-mega-menu.liquid",
+    "snippets/country-localization.liquid",
+    "snippets/language-localization.liquid",
+    "snippets/cart-notification.liquid",
+    "snippets/loading-spinner.liquid",
+    "snippets/social-icons.liquid"
   ],
   "assets": {
     "css": [
       "assets/base.css",
-      "assets/section-header.css",
-      "assets/section-footer.css"
+      "assets/section-footer.css",
+      "assets/component-list-menu.css",
+      "assets/component-search.css",
+      "assets/component-menu-drawer.css",
+      "assets/component-cart-notification.css",
+      "assets/component-localization-form.css",
+      "assets/component-list-social.css",
+      "assets/component-slideshow.css",
+      "assets/component-slider.css"
     ]
   },
   "settingsSchema": {

@@ -174,3 +174,25 @@ export interface ShopifyThemeCreateInput {
   role?: 'UNPUBLISHED' | 'MAIN' | 'DEVELOPMENT';
   src?: string;
 }
+
+// Recent Generations Types
+export interface GenerationListItem {
+  id: string;
+  sourceUrl: string;
+  status: GenerationStatus;
+  createdAt: string;
+  updatedAt: string;
+  themeName: string | null;
+  thumbnailUrl: string | null;
+  editorSession: {
+    id: string;
+    status: string;
+    importedAt: string | null;
+  } | null;
+}
+
+export interface GenerationsListResponse {
+  generations: GenerationListItem[];
+  nextCursor: string | null;
+  total: number;
+}

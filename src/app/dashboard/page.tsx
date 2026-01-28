@@ -14,18 +14,21 @@ import {
 } from '@shopify/polaris';
 import { useRouter } from 'next/navigation';
 import { AppBridgeProvider } from '@/components/providers/AppBridgeProvider';
+import { RecentGenerations } from '@/components/ui/RecentGenerations';
 
 function DashboardContent() {
   const router = useRouter();
   const [shopParams, setShopParams] = useState('');
+  const [shop, setShop] = useState<string | null>(null);
 
   // Preserve shop and host params for navigation
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const shop = params.get('shop');
+    const shopParam = params.get('shop');
     const host = params.get('host');
+    if (shopParam) setShop(shopParam);
     const queryParts = [];
-    if (shop) queryParts.push(`shop=${encodeURIComponent(shop)}`);
+    if (shopParam) queryParts.push(`shop=${encodeURIComponent(shopParam)}`);
     if (host) queryParts.push(`host=${encodeURIComponent(host)}`);
     setShopParams(queryParts.length > 0 ? `?${queryParts.join('&')}` : '');
   }, []);
@@ -109,9 +112,13 @@ function DashboardContent() {
                 <Text as="h2" variant="headingMd">
                   Recent Generations
                 </Text>
-                <Text as="p" tone="subdued">
-                  No generations yet. Start by creating your first one!
-                </Text>
+                {shop ? (
+                  <RecentGenerations shopDomain={shop} />
+                ) : (
+                  <Text as="p" tone="subdued">
+                    Loading...
+                  </Text>
+                )}
               </BlockStack>
             </Card>
           </Layout.Section>

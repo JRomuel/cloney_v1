@@ -269,6 +269,13 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
         content_for_layout: contentForLayout,
       });
 
+      // Debug logging
+      console.log('[Preview] Rendered HTML length:', fullHtml.length);
+      console.log('[Preview] Content for layout length:', contentForLayout.length);
+      if (fullHtml.length < 100) {
+        console.warn('[Preview] HTML seems too short:', fullHtml);
+      }
+
       return { html: fullHtml, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Render failed';
