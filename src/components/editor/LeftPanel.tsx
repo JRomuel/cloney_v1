@@ -2,7 +2,6 @@
 
 import { Box, BlockStack, Text, Badge, InlineStack } from '@shopify/polaris';
 import { useEditorStore } from '@/stores/editorStore';
-import { PageSelector } from './PageSelector';
 import { TabNavigation } from './tabs/TabNavigation';
 import { HomepageTab } from './tabs/HomepageTab';
 import { ProductsTab } from './tabs/ProductsTab';
@@ -34,8 +33,6 @@ export function LeftPanel({ isSaving, isDirty }: LeftPanelProps) {
           </InlineStack>
         </InlineStack>
       </div>
-
-      <PageSelector />
 
       <div className={styles.content}>
         {activePage === 'home' && (

@@ -153,9 +153,12 @@ export async function POST(request: NextRequest) {
     const brandName = homepage?.hero?.title || 'Cloney Store';
     const themeName = generateThemeName(brandName);
 
+    // Get theme ID from request (defaults to 'dawn')
+    const themeId = body.themeId || 'dawn';
+
     // Create theme (UNPUBLISHED)
-    console.log(`[Import] Creating theme: ${themeName}`);
-    const theme = await createTheme(client, themeName);
+    console.log(`[Import] Creating theme: ${themeName} (using local theme: ${themeId})`);
+    const theme = await createTheme(client, themeName, themeId);
 
     // Update theme settings (always required for color schemes)
     // Color schemes must be defined for sections to render properly

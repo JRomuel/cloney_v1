@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
+import { useEditorStore } from '@/stores/editorStore';
 import { getThemeRegistry, initializeDefaultTheme } from '@/lib/themes/core/ThemeRegistry';
 import type { LiquidEngine } from '@/lib/themes/core/LiquidEngine';
 import type { ThemeLoader } from '@/lib/themes/core/ThemeLoader';
@@ -17,7 +18,8 @@ export interface ThemeEngineState {
 }
 
 export function useThemeEngine() {
-  const { activeThemeId, setLoading, setInitialized, setError, setAvailableThemes } = useThemeStore();
+  const { setActiveTheme, setLoading, setInitialized, setError, setAvailableThemes } = useThemeStore();
+  const { selectedThemeId } = useEditorStore();
 
   const [state, setState] = useState<ThemeEngineState>({
     engine: null,
@@ -38,8 +40,8 @@ export function useThemeEngine() {
     setError(null);
 
     try {
-      // Initialize the theme registry and load the default theme
-      await initializeDefaultTheme();
+      // Initialize the theme registry and load the selected theme
+      await initializeDefaultTheme(selectedThemeId || 'dawn');
 
       const registry = getThemeRegistry();
       const theme = registry.getActiveTheme();
@@ -79,17 +81,20 @@ export function useThemeEngine() {
       setLoading(false);
       initializingRef.current = false;
     }
-  }, [setLoading, setError, setAvailableThemes, setInitialized]);
+  }, [setLoading, setError, setAvailableThemes, setInitialized, selectedThemeId]);
 
   // Reinitialize when theme changes
   const switchTheme = useCallback(async (themeId: string) => {
-    if (themeId === activeThemeId) return;
+    const registry = getThemeRegistry();
+    const currentTheme = registry.getActiveTheme();
+
+    // Check against registry's actual active theme to prevent duplicate switches
+    if (currentTheme && currentTheme.config.id === themeId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const registry = getThemeRegistry();
       await registry.setActiveTheme(themeId);
 
       const theme = registry.getActiveTheme();
@@ -107,6 +112,9 @@ export function useThemeEngine() {
         isReady: true,
         error: null,
       });
+
+      // Update themeStore to reflect the active theme
+      setActiveTheme(themeId);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to switch theme';
       console.error('Theme switch error:', err);
@@ -120,7 +128,7 @@ export function useThemeEngine() {
     } finally {
       setLoading(false);
     }
-  }, [activeThemeId, setLoading, setError]);
+  }, [setActiveTheme, setLoading, setError]);
 
   // Initialize on mount
   useEffect(() => {
@@ -128,6 +136,19 @@ export function useThemeEngine() {
       initialize();
     }
   }, [initialize, state.isReady]);
+
+  // Handle theme sync after initialization (e.g., when store hydrates with different theme)
+  useEffect(() => {
+    if (!state.isReady || !selectedThemeId) return;
+
+    const registry = getThemeRegistry();
+    const activeTheme = registry.getActiveTheme();
+
+    // If the registry's active theme doesn't match selectedThemeId, switch to it
+    if (activeTheme && activeTheme.config.id !== selectedThemeId) {
+      switchTheme(selectedThemeId);
+    }
+  }, [state.isReady, selectedThemeId, switchTheme]);
 
   // Clear cache
   const clearCache = useCallback(() => {

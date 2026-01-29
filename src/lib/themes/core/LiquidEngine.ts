@@ -7,9 +7,11 @@ import { templateCache } from './TemplateCache';
 export class LiquidEngine {
   private engine: Liquid;
   private loader: ThemeLoader;
+  private themeId: string;
   private snippetCache: Map<string, Template[]> = new Map();
 
   constructor(themeId: string = 'dawn') {
+    this.themeId = themeId;
     this.loader = getThemeLoader(themeId);
 
     this.engine = new Liquid({
@@ -30,9 +32,12 @@ export class LiquidEngine {
     this.registerShopifyRenderTag();
     this.registerShopifySchemaTag();
     this.registerShopifyStyleTag();
+    this.registerShopifyStylesheetTag();
     this.registerShopifyJavascriptTag();
     this.registerShopifyFormTag();
     this.registerShopifyCommentTag();
+    this.registerShopifyContentForTag();
+    this.registerShopifyDocTag();
   }
 
   /**
@@ -92,7 +97,7 @@ export class LiquidEngine {
     // Asset URL filter
     this.engine.registerFilter('asset_url', (value: string) => {
       if (!value) return '';
-      return `/themes/dawn/assets/${value}`;
+      return `/themes/${this.themeId}/assets/${value}`;
     });
 
     // Inline asset content filter - returns inline SVG content for icons
@@ -121,17 +126,39 @@ export class LiquidEngine {
       }
 
       // Fallback: return an img tag for unknown SVGs
-      const assetPath = `/themes/dawn/assets/${value}`;
+      const assetPath = `/themes/${this.themeId}/assets/${value}`;
       if (value.endsWith('.svg')) {
         return `<img src="${assetPath}" alt="${value.replace('.svg', '')}" class="icon" style="display:inline-block;width:1.5rem;height:1.5rem;">`;
       }
       return '';
     });
 
-    // Stylesheet tag filter
-    this.engine.registerFilter('stylesheet_tag', (value: string) => {
+    // Stylesheet tag filter - converts URL to <link> tag
+    // Handles: {{ url | stylesheet_tag }} and {{ url | stylesheet_tag: preload: true }}
+    this.engine.registerFilter('stylesheet_tag', (value: string, ...args: unknown[]) => {
       if (!value) return '';
+      // Check for preload option in args
+      const hasPreload = args.some(arg =>
+        typeof arg === 'object' && arg !== null && (arg as Record<string, unknown>).preload === true
+      );
+      if (hasPreload) {
+        return `<link rel="preload" href="${value}" as="style" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="${value}"></noscript>`;
+      }
       return `<link rel="stylesheet" href="${value}">`;
+    });
+
+    // Preload tag filter - converts URL to <link rel="preload"> tag
+    // Handles: {{ url | preload_tag: as: 'style' }}
+    this.engine.registerFilter('preload_tag', (value: string, ...args: unknown[]) => {
+      if (!value) return '';
+      // Extract 'as' parameter from args
+      let asType = 'style';
+      for (const arg of args) {
+        if (typeof arg === 'object' && arg !== null && 'as' in arg) {
+          asType = String((arg as Record<string, unknown>).as);
+        }
+      }
+      return `<link rel="preload" href="${value}" as="${asType}">`;
     });
 
     // Script tag filter
@@ -289,6 +316,32 @@ export class LiquidEngine {
       return value; // Simplified - just return as-is
     });
 
+    // Color modify filter - modifies color properties
+    // Usage: {{ color | color_modify: 'alpha', 0.5 }}
+    this.engine.registerFilter('color_modify', (value: string, property: string, amount: number) => {
+      if (!value) return value;
+
+      // Handle alpha modification - return transparent version
+      if (property === 'alpha') {
+        // If it's a hex color, convert to rgba
+        if (value.startsWith('#')) {
+          const hex = value.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16) || 0;
+          const g = parseInt(hex.substring(2, 4), 16) || 0;
+          const b = parseInt(hex.substring(4, 6), 16) || 0;
+          return `rgba(${r}, ${g}, ${b}, ${amount})`;
+        }
+        // If it's already rgb/rgba, modify the alpha
+        if (value.startsWith('rgb')) {
+          const match = value.match(/rgba?\((\d+),?\s*(\d+),?\s*(\d+)/);
+          if (match) {
+            return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${amount})`;
+          }
+        }
+      }
+      return value;
+    });
+
     // Font filters
     this.engine.registerFilter('font_face', (font: unknown, options?: string) => {
       // Return empty for preview - fonts handled by CSS
@@ -365,6 +418,22 @@ export class LiquidEngine {
       return Math.max(value, min);
     });
 
+    // Array filters
+    this.engine.registerFilter('find_index', (arr: unknown[], searchValue: unknown) => {
+      if (!Array.isArray(arr)) return -1;
+      return arr.indexOf(searchValue);
+    });
+
+    this.engine.registerFilter('sort_natural', (arr: unknown[]) => {
+      if (!Array.isArray(arr)) return arr;
+      return [...arr].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+    });
+
+    this.engine.registerFilter('uniq', (arr: unknown[]) => {
+      if (!Array.isArray(arr)) return arr;
+      return [...new Set(arr)];
+    });
+
     // URL filters
     this.engine.registerFilter('url_encode', (value: string) => {
       return encodeURIComponent(value || '');
@@ -396,6 +465,18 @@ export class LiquidEngine {
         .replace('%d', String(d.getDate()).padStart(2, '0'))
         .replace('%B', d.toLocaleDateString('en-US', { month: 'long' }))
         .replace('%b', d.toLocaleDateString('en-US', { month: 'short' }));
+    });
+
+    // Size filter - returns the size/length of arrays, objects, or strings
+    // Shopify uses .size property, but JavaScript uses .length
+    // This filter handles both: {{ array | size }} and {{ object | size }}
+    this.engine.registerFilter('size', (value: unknown) => {
+      if (Array.isArray(value)) return value.length;
+      if (typeof value === 'object' && value !== null) {
+        return Object.keys(value).length;
+      }
+      if (typeof value === 'string') return value.length;
+      return 0;
     });
   }
 
@@ -472,26 +553,31 @@ export class LiquidEngine {
             return;
           }
 
-          // For header-group, render announcement-bar first, then header
+          // For header-group, render announcement section (if exists) then header
           if (groupName === 'header-group') {
             let result = '';
             const sections = ctx.get(['sections']) as Record<string, unknown> | undefined;
 
-            // Render announcement bar first
-            try {
-              const announcementContext = sections?.['announcement-bar'];
-              if (announcementContext) {
-                const announcementTemplate = await self.loader.loadTemplate('sections/announcement-bar.liquid');
-                const cleanAnnouncement = self.stripSchemaTag(announcementTemplate);
-                const announcementRenderCtx = { ...ctx.getAll(), section: announcementContext };
-                result += await self.engine.render(self.engine.parse(cleanAnnouncement), announcementRenderCtx);
+            // Try to render announcement bar - use theme-specific naming
+            // Dawn uses 'announcement-bar', Tinker uses 'header-announcements'
+            const announcementSectionNames = ['announcement-bar', 'header-announcements'];
+            for (const sectionName of announcementSectionNames) {
+              try {
+                const announcementContext = sections?.[sectionName];
+                if (announcementContext) {
+                  const announcementTemplate = await self.loader.loadTemplate(`sections/${sectionName}.liquid`);
+                  const cleanAnnouncement = self.stripSchemaTag(announcementTemplate);
+                  const announcementRenderCtx = { ...ctx.getAll(), section: announcementContext };
+                  result += await self.engine.render(self.engine.parse(cleanAnnouncement), announcementRenderCtx);
+                  break; // Successfully rendered, stop trying other names
+                }
+              } catch {
+                // Template doesn't exist for this theme, try next name or skip silently
+                continue;
               }
-            } catch (announcementError) {
-              console.warn('[LiquidEngine] Announcement bar render error:', announcementError);
-              result += `<!-- Announcement bar render error: ${announcementError} -->`;
             }
 
-            // Then render header
+            // Then render header - skip if template doesn't exist
             try {
               const templateContent = await self.loader.loadTemplate('sections/header.liquid');
               const cleanTemplate = self.stripSchemaTag(templateContent);
@@ -502,9 +588,8 @@ export class LiquidEngine {
               };
               const parsed = self.engine.parse(cleanTemplate);
               result += await self.engine.render(parsed, renderContext);
-            } catch (renderError) {
-              console.error('[LiquidEngine] Header render error:', renderError);
-              result += `<!-- Header render error: ${renderError} -->`;
+            } catch {
+              // Header template failed - skip silently for preview
             }
 
             emitter.write(result);
@@ -513,16 +598,20 @@ export class LiquidEngine {
 
           // For footer-group, render the footer section
           if (groupName === 'footer-group') {
-            const templateContent = await self.loader.loadTemplate('sections/footer.liquid');
-            const cleanTemplate = self.stripSchemaTag(templateContent);
-            const sections = ctx.get(['sections']) as Record<string, unknown> | undefined;
-            const sectionContext = sections?.['footer'];
-            const renderContext = {
-              ...ctx.getAll(),
-              section: sectionContext || { id: 'footer', type: 'footer', settings: {}, blocks: [], block_order: [] },
-            };
-            const result = await self.engine.render(self.engine.parse(cleanTemplate), renderContext);
-            emitter.write(result);
+            try {
+              const templateContent = await self.loader.loadTemplate('sections/footer.liquid');
+              const cleanTemplate = self.stripSchemaTag(templateContent);
+              const sections = ctx.get(['sections']) as Record<string, unknown> | undefined;
+              const sectionContext = sections?.['footer'];
+              const renderContext = {
+                ...ctx.getAll(),
+                section: sectionContext || { id: 'footer', type: 'footer', settings: {}, blocks: [], block_order: [] },
+              };
+              const result = await self.engine.render(self.engine.parse(cleanTemplate), renderContext);
+              emitter.write(result);
+            } catch {
+              // Footer template failed - skip silently for preview
+            }
             return;
           }
 
@@ -576,8 +665,20 @@ export class LiquidEngine {
           const localScope: Record<string, unknown> = {};
           for (const [key, valueExpr] of Object.entries(variables)) {
             // Evaluate the expression in the current context
-            const value = ctx.get([valueExpr as string]);
+            // Split dotted paths for proper context traversal (e.g., "block.settings.link")
+            const pathParts = (valueExpr as string).split('.');
+            const value = ctx.get(pathParts);
             localScope[key] = value !== undefined ? value : (valueExpr as string);
+          }
+
+          // AUTO-INCLUDE: If 'block' not explicitly passed but exists in parent context,
+          // include it so snippets can access block.settings (matches Shopify behavior
+          // where snippets rendered from blocks automatically have access to block)
+          if (!Object.prototype.hasOwnProperty.call(localScope, 'block')) {
+            const parentBlock = ctx.get(['block']);
+            if (parentBlock) {
+              localScope['block'] = parentBlock;
+            }
           }
 
           // Create a new context with local scope
@@ -643,6 +744,38 @@ export class LiquidEngine {
   }
 
   /**
+   * Register the {% stylesheet %} tag for Shopify stylesheet blocks
+   * Used by Tinker theme for section-specific CSS
+   */
+  private registerShopifyStylesheetTag(): void {
+    this.engine.registerTag('stylesheet', {
+      parse(tagToken: TagToken, remainTokens: TopLevelToken[]) {
+        // Consume all tokens until endstylesheet
+        this.cssContent = [];
+        let token: TopLevelToken | undefined;
+        while ((token = remainTokens.shift())) {
+          const tagName = (token as unknown as { name?: string }).name;
+          if (tagName === 'endstylesheet') {
+            break;
+          }
+          // Capture the raw content
+          if ((token as unknown as { raw?: string }).raw) {
+            this.cssContent.push((token as unknown as { raw: string }).raw);
+          }
+        }
+      },
+      render() {
+        // Output stylesheet content wrapped in style tags
+        const css = this.cssContent?.join('') || '';
+        if (css.trim()) {
+          return `<style>${css}</style>`;
+        }
+        return '';
+      },
+    });
+  }
+
+  /**
    * Register the {% javascript %} tag for inline script output
    * Note: Javascript blocks are converted to <script> tags during preprocessing
    * This is a no-op fallback in case any slip through
@@ -690,14 +823,199 @@ export class LiquidEngine {
   }
 
   /**
+   * Register the {% content_for %} tag for rendering blocks
+   * Tinker theme uses this to render nested blocks within sections
+   */
+  private registerShopifyContentForTag(): void {
+    const self = this;
+
+    this.engine.registerTag('content_for', {
+      parse(tagToken: TagToken) {
+        const args = tagToken.args.trim();
+
+        // Extract first arg: 'block' or 'blocks'
+        const firstArgMatch = args.match(/^['"]?(block|blocks)['"]?/);
+        this.contentType = firstArgMatch ? firstArgMatch[1] : 'blocks';
+
+        // Parse named arguments (type: 'value', id: 'value', etc.)
+        this.namedArgs = {} as Record<string, string>;
+        const remaining = args.replace(/^['"]?(block|blocks)['"]?,?\s*/, '');
+
+        if (remaining) {
+          const argMatches = remaining.matchAll(/([a-zA-Z_.]+):\s*(['"][^'"]*['"]|[^,\s]+)/g);
+          for (const match of argMatches) {
+            const key = match[1].trim();
+            const value = match[2].trim().replace(/^['"]|['"]$/g, '');
+            this.namedArgs[key] = value;
+          }
+        }
+      },
+
+      async render(ctx: Context, emitter: Emitter) {
+        const contentType = this.contentType;
+        const namedArgs = this.namedArgs || {};
+
+        try {
+          if (contentType === 'block') {
+            // Render specific block by type
+            const blockType = namedArgs.type || namedArgs.id;
+            if (!blockType) {
+              emitter.write('<!-- content_for block: missing type -->');
+              return;
+            }
+
+            // Build local scope from named args
+            const localScope: Record<string, unknown> = {};
+            for (const [key, valueExpr] of Object.entries(namedArgs) as [string, string][]) {
+              if (key === 'type' || key === 'id') continue;
+              const resolved = ctx.get([valueExpr]);
+              localScope[key] = resolved !== undefined ? resolved : valueExpr;
+            }
+
+            try {
+              const templateContent = await self.loader.loadTemplate(`blocks/${blockType}.liquid`);
+              const cleanTemplate = self.stripSchemaTag(templateContent);
+
+              // Get block data
+              const section = ctx.get(['section']) as { blocks?: unknown } | undefined;
+              const blockId = namedArgs.id || blockType;
+              let blockData: Record<string, unknown> = {
+                id: blockId,
+                type: blockType,
+                settings: {},
+                shopify_attributes: `data-block-type="${blockType}" data-block-id="${blockId}"`,
+              };
+
+              // Try to find block data in section.blocks
+              if (section?.blocks) {
+                if (Array.isArray(section.blocks)) {
+                  const found = section.blocks.find((b: { id?: string; type?: string }) => b.id === blockId || b.type === blockType);
+                  if (found) blockData = { ...blockData, ...found };
+                } else if (typeof section.blocks === 'object') {
+                  const found = (section.blocks as Record<string, unknown>)[blockId];
+                  if (found) blockData = { ...blockData, ...(found as object) };
+                }
+              }
+
+              const renderContext = {
+                ...ctx.getAll(),
+                ...localScope,
+                block: blockData,
+              };
+
+              const templates = self.engine.parse(cleanTemplate);
+              const result = await self.engine.render(templates, renderContext);
+              emitter.write(result);
+            } catch {
+              // Block template not found - skip silently for preview
+              emitter.write(`<!-- Block ${blockType} -->`);
+            }
+
+          } else {
+            // contentType === 'blocks' - render all child blocks
+            const section = ctx.get(['section']) as { blocks?: unknown; block_order?: string[] } | undefined;
+            const currentBlock = ctx.get(['block']) as { blocks?: unknown; block_order?: string[] } | undefined;
+
+            const blocksSource = currentBlock?.blocks || section?.blocks;
+            const blockOrder = currentBlock?.block_order || section?.block_order || [];
+
+            if (!blocksSource) {
+              emitter.write('<!-- content_for blocks: no blocks found -->');
+              return;
+            }
+
+            // Build blocks array
+            let blocksArray: Array<{ id: string; type: string }> = [];
+            if (Array.isArray(blocksSource)) {
+              blocksArray = blocksSource;
+            } else if (typeof blocksSource === 'object') {
+              for (const blockId of blockOrder) {
+                const block = (blocksSource as Record<string, unknown>)[blockId];
+                if (block) blocksArray.push({ id: blockId, ...(block as object) } as { id: string; type: string });
+              }
+            }
+
+            // Render each block
+            for (const blockData of blocksArray) {
+              const blockType = blockData.type;
+              if (!blockType) continue;
+
+              try {
+                const templateContent = await self.loader.loadTemplate(`blocks/${blockType}.liquid`);
+                const cleanTemplate = self.stripSchemaTag(templateContent);
+
+                const renderContext = {
+                  ...ctx.getAll(),
+                  block: {
+                    ...blockData,
+                    shopify_attributes: `data-block-type="${blockType}" data-block-id="${blockData.id}"`,
+                  },
+                };
+
+                const templates = self.engine.parse(cleanTemplate);
+                const result = await self.engine.render(templates, renderContext);
+                emitter.write(result);
+              } catch {
+                // Block render failed - skip silently for preview
+                emitter.write(`<!-- Block ${blockType} -->`);
+              }
+            }
+          }
+        } catch {
+          // content_for error - skip silently for preview
+          emitter.write(`<!-- content_for -->`);
+        }
+      },
+    });
+  }
+
+  /**
+   * Register the {% doc %} tag for Shopify documentation
+   * Used by Tinker theme for snippet/block documentation
+   * This tag is ignored in rendering - it's documentation only
+   */
+  private registerShopifyDocTag(): void {
+    this.engine.registerTag('doc', {
+      parse(tagToken: TagToken, remainTokens: TopLevelToken[]) {
+        // Consume all tokens until enddoc
+        let token: TopLevelToken | undefined;
+        while ((token = remainTokens.shift())) {
+          const tagName = (token as unknown as { name?: string }).name;
+          if (tagName === 'enddoc') {
+            break;
+          }
+        }
+      },
+      render() {
+        // Doc tags don't render anything - they're documentation only
+        return '';
+      },
+    });
+  }
+
+  /**
    * Strip schema blocks and convert liquid tags
    */
   private preprocessTemplate(content: string): string {
     // Strip schema blocks
     let result = content.replace(/\{%-?\s*schema\s*-?%\}[\s\S]*?\{%-?\s*endschema\s*-?%\}/g, '');
 
+    // Strip doc blocks (Tinker theme documentation)
+    result = result.replace(/\{%-?\s*doc\s*-?%\}[\s\S]*?\{%-?\s*enddoc\s*-?%\}/g, '');
+
+    // Strip <script> tags that load theme JavaScript via asset_url
+    // These are theme-specific JS components that won't work in preview mode
+    // Pattern matches: <script ... src="{{ 'filename.js' | asset_url }}" ...></script>
+    result = result.replace(/<script[^>]*\{\{[^}]*\|\s*asset_url[^}]*\}\}[^>]*>[\s\S]*?<\/script>/gi, '<!-- Theme JS removed for preview -->');
+
+    // Also strip script tags with src on a separate line (Tinker's format)
+    result = result.replace(/<script[\s\S]*?src\s*=\s*"\s*\{\{[^}]+\|\s*asset_url[^}]*\}\}\s*"[\s\S]*?<\/script>/gi, '<!-- Theme JS removed for preview -->');
+
     // Convert {% style %} blocks to <style> tags (the content inside is still Liquid and will be rendered)
     result = result.replace(/\{%-?\s*style\s*-?%\}([\s\S]*?)\{%-?\s*endstyle\s*-?%\}/g, '<style>$1</style>');
+
+    // Convert {% stylesheet %} blocks to <style> tags (Tinker theme uses this)
+    result = result.replace(/\{%-?\s*stylesheet\s*-?%\}([\s\S]*?)\{%-?\s*endstylesheet\s*-?%\}/g, '<style>$1</style>');
 
     // Convert {% javascript %} blocks to <script> tags
     result = result.replace(/\{%-?\s*javascript\s*-?%\}([\s\S]*?)\{%-?\s*endjavascript\s*-?%\}/g, '<script>$1</script>');
@@ -812,6 +1130,14 @@ export class LiquidEngine {
   }
 
   /**
+   * Set the theme ID for asset URL generation
+   */
+  setThemeId(themeId: string): void {
+    this.themeId = themeId;
+    this.loader = getThemeLoader(themeId);
+  }
+
+  /**
    * Clear all caches
    */
   clearCache(): void {
@@ -821,12 +1147,12 @@ export class LiquidEngine {
   }
 }
 
-// Create singleton instance
-let liquidEngine: LiquidEngine | null = null;
+// Map of liquid engines keyed by themeId
+const liquidEngines: Map<string, LiquidEngine> = new Map();
 
 export function getLiquidEngine(themeId: string = 'dawn'): LiquidEngine {
-  if (!liquidEngine) {
-    liquidEngine = new LiquidEngine(themeId);
+  if (!liquidEngines.has(themeId)) {
+    liquidEngines.set(themeId, new LiquidEngine(themeId));
   }
-  return liquidEngine;
+  return liquidEngines.get(themeId)!;
 }

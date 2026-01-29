@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
+import { useThemeStore } from '@/stores/themeStore';
 import { useThemeEngine } from './hooks/useThemeEngine';
 import { usePreviewRenderer } from './hooks/usePreviewRenderer';
 import { ThemePreviewFrame } from './ThemePreviewFrame';
 import styles from './ThemePreview.module.css';
 
 export function ThemePreview() {
-  const { homepage, products, styles: themeStyles, previewMode, activePage, productPage, contactPage } = useEditorStore();
-  const { engine, css, isReady, error: engineError } = useThemeEngine();
+  const { homepage, products, styles: themeStyles, previewMode, activePage, productPage, contactPage, selectedThemeId } = useEditorStore();
+  const { activeThemeId, setActiveTheme } = useThemeStore();
+  const { engine, css, isReady, error: engineError, switchTheme } = useThemeEngine();
   const {
     renderedHtml,
     isRendering,
@@ -26,6 +28,16 @@ export function ThemePreview() {
   const prevProductPageRef = useRef(productPage);
   const prevContactPageRef = useRef(contactPage);
   const hasInitialRenderRef = useRef(false);
+
+  // Switch theme when selectedThemeId changes (from editor store)
+  useEffect(() => {
+    if (isReady && selectedThemeId && selectedThemeId !== activeThemeId) {
+      switchTheme(selectedThemeId).then(() => {
+        setActiveTheme(selectedThemeId);
+        forceRender();
+      });
+    }
+  }, [selectedThemeId, activeThemeId, isReady, switchTheme, setActiveTheme, forceRender]);
 
   // Initial render when engine is ready
   useEffect(() => {

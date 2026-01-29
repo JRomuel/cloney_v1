@@ -58,7 +58,7 @@ function buildHomepageContent(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { generationId } = body;
+    const { generationId, selectedThemeId } = body;
 
     if (!generationId) {
       return NextResponse.json(
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
         styles: generation.editorSession.stylesContent
           ? JSON.parse(generation.editorSession.stylesContent)
           : null,
+        selectedThemeId: generation.editorSession.selectedThemeId,
         status: generation.editorSession.status,
       });
     }
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
         homepageContent: JSON.stringify(homepage),
         productsContent: JSON.stringify(products),
         stylesContent: JSON.stringify(styles),
+        selectedThemeId: selectedThemeId || 'dawn',
         status: 'editing',
       },
     });
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
       homepage,
       products,
       styles,
+      selectedThemeId: editorSession.selectedThemeId,
       status: 'editing',
     });
   } catch (error) {

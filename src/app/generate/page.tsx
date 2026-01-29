@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Page, Layout, BlockStack, Banner, Text, Frame } from '@shopify/polaris';
 import { AppBridgeProvider, useAppBridge } from '@/components/providers/AppBridgeProvider';
+import { ThemeSelector } from '@/components/ui/ThemeSelector';
 import { GenerateForm } from '@/components/ui/GenerateForm';
 import { GenerationStatus } from '@/components/ui/GenerationStatus';
 import { EditorLayout } from '@/components/editor/EditorLayout';
@@ -13,17 +14,17 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useEditorPersistence } from '@/hooks/useEditorPersistence';
 import { GenerationStatus as StatusType } from '@/types';
 
-type ViewState = 'input' | 'generating' | 'editing';
+type ViewState = 'theme-selection' | 'input' | 'generating' | 'editing';
 
 function GeneratePageContent() {
-  const [viewState, setViewState] = useState<ViewState>('input');
+  const [viewState, setViewState] = useState<ViewState>('theme-selection');
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shop, setShop] = useState<string | null>(null);
   const { showToast, setLoading } = useAppBridge();
 
-  const { loadFromGeneration, reset: resetEditor, sessionId } = useEditorStore();
+  const { loadFromGeneration, reset: resetEditor, sessionId, selectedThemeId } = useEditorStore();
   const { isSaving, isDirty } = useEditorPersistence();
 
   // Load a generation by ID into the editor
@@ -53,6 +54,7 @@ function GeneratePageContent() {
           homepage: sessionData.homepage,
           products: sessionData.products,
           styles: sessionData.styles,
+          selectedThemeId: sessionData.selectedThemeId,
         });
 
         setGenerationId(genId);
@@ -138,7 +140,7 @@ function GeneratePageContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ generationId }),
+        body: JSON.stringify({ generationId, selectedThemeId }),
       });
 
       const data = await response.json();
@@ -154,6 +156,7 @@ function GeneratePageContent() {
         homepage: data.homepage,
         products: data.products,
         styles: data.styles,
+        selectedThemeId: data.selectedThemeId,
       });
 
       setViewState('editing');
@@ -163,7 +166,7 @@ function GeneratePageContent() {
       setError(message);
       showToast(message, true);
     }
-  }, [generationId, loadFromGeneration, showToast]);
+  }, [generationId, selectedThemeId, loadFromGeneration, showToast]);
 
   const handleGenerationError = useCallback(
     (errorMessage: string) => {
@@ -174,11 +177,19 @@ function GeneratePageContent() {
   );
 
   const handleNewGeneration = useCallback(() => {
-    setViewState('input');
+    setViewState('theme-selection');
     setGenerationId(null);
     setError(null);
     resetEditor();
   }, [resetEditor]);
+
+  const handleThemeSelected = useCallback(() => {
+    setViewState('input');
+  }, []);
+
+  const handleBackToThemeSelection = useCallback(() => {
+    setViewState('theme-selection');
+  }, []);
 
   const handleImportSuccess = useCallback(
     (result: { themeName: string; productsCreated: number }) => {
@@ -270,8 +281,15 @@ function GeneratePageContent() {
         )}
 
         <Layout.Section>
+          {viewState === 'theme-selection' && (
+            <ThemeSelector onContinue={handleThemeSelected} />
+          )}
           {viewState === 'input' && (
-            <GenerateForm onSubmit={handleSubmit} isLoading={isLoading} />
+            <GenerateForm
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              onBack={handleBackToThemeSelection}
+            />
           )}
           {viewState === 'generating' && generationId && (
             <GenerationStatus
@@ -286,20 +304,34 @@ function GeneratePageContent() {
         <Layout.Section variant="oneThird">
           <BlockStack gap="400">
             <Banner>
-              <BlockStack gap="200">
-                <Text as="p" fontWeight="semibold">
-                  Tips for best results:
-                </Text>
-                <Text as="p">
-                  - Use the homepage URL for brand analysis
-                </Text>
-                <Text as="p">
-                  - Ensure the site has visible products/services
-                </Text>
-                <Text as="p">
-                  - Works best with e-commerce or portfolio sites
-                </Text>
-              </BlockStack>
+              {viewState === 'theme-selection' ? (
+                <BlockStack gap="200">
+                  <Text as="p" fontWeight="semibold">
+                    About the themes:
+                  </Text>
+                  <Text as="p">
+                    <strong>Dawn</strong> - Shopify&apos;s flagship theme with clean, minimal design and excellent performance.
+                  </Text>
+                  <Text as="p">
+                    <strong>Horizon</strong> - A modern theme with bold visuals and rich design elements.
+                  </Text>
+                </BlockStack>
+              ) : (
+                <BlockStack gap="200">
+                  <Text as="p" fontWeight="semibold">
+                    Tips for best results:
+                  </Text>
+                  <Text as="p">
+                    - Use the homepage URL for brand analysis
+                  </Text>
+                  <Text as="p">
+                    - Ensure the site has visible products/services
+                  </Text>
+                  <Text as="p">
+                    - Works best with e-commerce or portfolio sites
+                  </Text>
+                </BlockStack>
+              )}
             </Banner>
           </BlockStack>
         </Layout.Section>

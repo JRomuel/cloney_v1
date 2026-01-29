@@ -43,6 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       styles: editorSession.stylesContent
         ? JSON.parse(editorSession.stylesContent)
         : null,
+      selectedThemeId: editorSession.selectedThemeId,
       status: editorSession.status,
       importedThemeId: editorSession.importedThemeId,
       importedAt: editorSession.importedAt,
@@ -72,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    const { homepage, products, styles } = body;
+    const { homepage, products, styles, selectedThemeId } = body;
 
     // Validate that the session exists
     const existingSession = await prisma.editorSession.findUnique({
@@ -99,6 +100,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       homepageContent?: string;
       productsContent?: string;
       stylesContent?: string;
+      selectedThemeId?: string;
       updatedAt: Date;
     } = {
       updatedAt: new Date(),
@@ -112,6 +114,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     if (styles !== undefined) {
       updateData.stylesContent = JSON.stringify(styles);
+    }
+    if (selectedThemeId !== undefined) {
+      updateData.selectedThemeId = selectedThemeId;
     }
 
     // Update the session
@@ -131,6 +136,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       styles: updatedSession.stylesContent
         ? JSON.parse(updatedSession.stylesContent)
         : null,
+      selectedThemeId: updatedSession.selectedThemeId,
       status: updatedSession.status,
       updatedAt: updatedSession.updatedAt,
     });

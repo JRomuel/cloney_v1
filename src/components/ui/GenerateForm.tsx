@@ -8,19 +8,28 @@ import {
   Button,
   Banner,
   BlockStack,
+  InlineStack,
   Text,
+  Badge,
 } from '@shopify/polaris';
 import { useAppBridge } from '@/components/providers/AppBridgeProvider';
+import { useEditorStore } from '@/stores/editorStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 interface GenerateFormProps {
   onSubmit: (url: string) => Promise<void>;
   isLoading: boolean;
+  onBack?: () => void;
 }
 
-export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
+export function GenerateForm({ onSubmit, isLoading, onBack }: GenerateFormProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useAppBridge();
+  const { selectedThemeId } = useEditorStore();
+  const { availableThemes } = useThemeStore();
+
+  const selectedTheme = availableThemes.find((t) => t.id === selectedThemeId);
 
   const validateUrl = (urlToValidate: string): boolean => {
     try {
@@ -67,6 +76,22 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   return (
     <Card>
       <BlockStack gap="400">
+        {selectedTheme && (
+          <InlineStack align="space-between" blockAlign="center">
+            <InlineStack gap="200" blockAlign="center">
+              <Text as="span" tone="subdued">
+                Theme:
+              </Text>
+              <Badge tone="info">{selectedTheme.name}</Badge>
+            </InlineStack>
+            {onBack && (
+              <Button variant="plain" onClick={onBack}>
+                Change theme
+              </Button>
+            )}
+          </InlineStack>
+        )}
+
         <Text as="h2" variant="headingMd">
           Enter Website URL
         </Text>

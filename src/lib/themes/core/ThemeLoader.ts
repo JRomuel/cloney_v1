@@ -166,12 +166,12 @@ export class ThemeLoader {
   }
 }
 
-// Create a default loader instance
-let defaultLoader: ThemeLoader | null = null;
+// Map of theme loaders keyed by themeId
+const themeLoaders: Map<string, ThemeLoader> = new Map();
 
 export function getThemeLoader(themeId: string = 'dawn'): ThemeLoader {
-  if (!defaultLoader || defaultLoader['baseUrl'] !== `/themes/${themeId}`) {
-    defaultLoader = new ThemeLoader(themeId);
+  if (!themeLoaders.has(themeId)) {
+    themeLoaders.set(themeId, new ThemeLoader(themeId));
   }
-  return defaultLoader;
+  return themeLoaders.get(themeId)!;
 }

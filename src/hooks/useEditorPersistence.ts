@@ -9,6 +9,7 @@ export function useEditorPersistence() {
     homepage,
     products,
     styles,
+    selectedThemeId,
     isDirty,
     isSaving,
     setSaving,
@@ -22,7 +23,7 @@ export function useEditorPersistence() {
     if (!sessionId || isSaving) return;
 
     // Create a hash of current data to avoid duplicate saves
-    const dataHash = JSON.stringify({ homepage, products, styles });
+    const dataHash = JSON.stringify({ homepage, products, styles, selectedThemeId });
     if (dataHash === lastSavedDataRef.current) return;
 
     setSaving(true);
@@ -33,7 +34,7 @@ export function useEditorPersistence() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ homepage, products, styles }),
+        body: JSON.stringify({ homepage, products, styles, selectedThemeId }),
       });
 
       if (!response.ok) {
@@ -47,7 +48,7 @@ export function useEditorPersistence() {
       console.error('[AutoSave] Failed to save:', error);
       setSaving(false);
     }
-  }, [sessionId, homepage, products, styles, isSaving, setSaving, markSaved]);
+  }, [sessionId, homepage, products, styles, selectedThemeId, isSaving, setSaving, markSaved]);
 
   // Debounced auto-save effect
   useEffect(() => {
@@ -78,11 +79,11 @@ export function useEditorPersistence() {
         // Perform a synchronous save attempt on unmount
         navigator.sendBeacon?.(
           `/api/editor/session/${sessionId}`,
-          JSON.stringify({ homepage, products, styles })
+          JSON.stringify({ homepage, products, styles, selectedThemeId })
         );
       }
     };
-  }, [isDirty, sessionId, homepage, products, styles]);
+  }, [isDirty, sessionId, homepage, products, styles, selectedThemeId]);
 
   return {
     saveNow: saveToServer,

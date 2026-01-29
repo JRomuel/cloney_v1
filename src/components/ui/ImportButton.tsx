@@ -19,7 +19,7 @@ interface ImportButtonProps {
 }
 
 export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonProps) {
-  const { sessionId, products } = useEditorStore();
+  const { sessionId, products, selectedThemeId } = useEditorStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
@@ -55,7 +55,7 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ sessionId, themeId: selectedThemeId }),
       });
 
       const data = await response.json();
@@ -82,7 +82,7 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
     } finally {
       setIsImporting(false);
     }
-  }, [sessionId, shopDomain, onSuccess, onError]);
+  }, [sessionId, shopDomain, selectedThemeId, onSuccess, onError]);
 
   return (
     <>

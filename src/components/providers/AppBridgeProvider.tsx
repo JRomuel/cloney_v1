@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, useCallback, ReactNode } from 'react';
 
 interface AppBridgeProviderProps {
   children: ReactNode;
@@ -30,24 +30,24 @@ export function AppBridgeProvider({ children }: AppBridgeProviderProps) {
 
 // Helper hooks for App Bridge features
 export function useAppBridge() {
-  const showToast = (message: string, isError = false) => {
+  const showToast = useCallback((message: string, isError = false) => {
     if (window.shopify?.toast) {
       window.shopify.toast.show(message, { isError });
     }
-  };
+  }, []);
 
-  const setLoading = (isLoading: boolean) => {
+  const setLoading = useCallback((isLoading: boolean) => {
     if (window.shopify?.loading) {
       window.shopify.loading(isLoading);
     }
-  };
+  }, []);
 
-  const getIdToken = async (): Promise<string | null> => {
+  const getIdToken = useCallback(async (): Promise<string | null> => {
     if (window.shopify?.idToken) {
       return window.shopify.idToken();
     }
     return null;
-  };
+  }, []);
 
   return {
     showToast,

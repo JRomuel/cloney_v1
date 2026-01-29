@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import type { LiquidEngine } from '@/lib/themes/core/LiquidEngine';
 import {
@@ -8,15 +8,11 @@ import {
   createPageRenderContext,
 } from '@/lib/themes/core/MockDataProvider';
 import {
-  mapHeroToImageBanner,
-  mapHeader,
-  mapFooter,
-  mapEditorSection,
-  mapProductsToFeaturedCollection,
   mapProductToMainProduct,
   mapContactHeroToImageBanner,
   mapContactInfoToRichText,
 } from '@/lib/themes/adapters/SectionMapper';
+import { getSectionMapper } from '@/lib/themes/adapters/ThemeSectionMapper';
 import type { UpdateType } from '@/lib/themes/types/theme.types';
 
 export interface RenderResult {
@@ -33,7 +29,7 @@ export interface PreviewRendererState {
 const CONTENT_DEBOUNCE_MS = 150;
 
 export function usePreviewRenderer(engine: LiquidEngine | null) {
-  const { homepage, products, styles, activePage, productPage, contactPage } = useEditorStore();
+  const { homepage, products, styles, activePage, productPage, contactPage, selectedThemeId } = useEditorStore();
 
   const [state, setState] = useState<PreviewRendererState>({
     renderedHtml: '',
@@ -43,6 +39,12 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastRenderRef = useRef<string>('');
+
+  // Get the appropriate section mapper for the selected theme
+  const sectionMapper = useMemo(
+    () => getSectionMapper(selectedThemeId),
+    [selectedThemeId]
+  );
 
   /**
    * Render a single section
@@ -69,27 +71,27 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
    * Render the homepage
    */
   const renderHomePage = useCallback(async (baseContext: Record<string, unknown>): Promise<string> => {
-    // Render hero
-    const heroMapping = mapHeroToImageBanner(homepage.hero);
+    // Render hero using theme-specific mapper
+    const heroMapping = sectionMapper.mapHero(homepage.hero);
     const heroHtml = await renderSection(
-      'image-banner',
+      heroMapping.sectionType,
       { section: heroMapping.section },
       baseContext
     );
 
-    // Render content sections
+    // Render content sections using theme-specific mapper
     const sectionHtmls: string[] = [];
     for (const section of homepage.sections) {
       if (!section.enabled) continue;
 
-      const mapping = mapEditorSection(section);
+      const mapping = sectionMapper.mapEditorSection(section);
       if (!mapping) continue;
 
       const sectionHtml = await renderSection(
         mapping.sectionType,
         {
           section: mapping.section,
-          collection: 'collection' in mapping ? mapping.collection : undefined,
+          collection: mapping.collection,
         },
         baseContext
       );
@@ -99,9 +101,9 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
     // Render products section if there are products
     let productsHtml = '';
     if (products.length > 0) {
-      const productsMapping = mapProductsToFeaturedCollection(products, 'Featured Products');
+      const productsMapping = sectionMapper.mapProducts(products, 'Featured Products');
       productsHtml = await renderSection(
-        'featured-collection',
+        productsMapping.sectionType,
         {
           section: productsMapping.section,
           collection: productsMapping.collection,
@@ -115,12 +117,15 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       ${sectionHtmls.join('\n')}
       ${productsHtml}
     `.trim();
-  }, [homepage, products, renderSection]);
+  }, [homepage, products, renderSection, sectionMapper]);
 
   /**
    * Render the product page
    */
   const renderProductPage = useCallback(async (baseContext: Record<string, unknown>): Promise<string> => {
+    // Get theme-specific section type for main product
+    const mainProductSectionType = sectionMapper.getSectionType('mainProduct');
+
     const selectedProduct = productPage.selectedProductId
       ? products.find(p => p.id === productPage.selectedProductId)
       : null;
@@ -134,10 +139,10 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       `;
     }
 
-    // Render main product section
+    // Render main product section (using existing mapper for now)
     const productMapping = mapProductToMainProduct(selectedProduct, productPage.layout);
     const productHtml = await renderSection(
-      'main-product',
+      mainProductSectionType,
       {
         section: productMapping.section,
         product: productMapping.product,
@@ -145,33 +150,33 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       baseContext
     );
 
-    // Render additional sections
+    // Render additional sections using theme-specific mapper
     const sectionHtmls: string[] = [];
     for (const section of productPage.sections) {
       if (!section.enabled) continue;
 
-      const mapping = mapEditorSection(section);
+      const mapping = sectionMapper.mapEditorSection(section);
       if (!mapping) continue;
 
       const sectionHtml = await renderSection(
         mapping.sectionType,
         {
           section: mapping.section,
-          collection: 'collection' in mapping ? mapping.collection : undefined,
+          collection: mapping.collection,
         },
         baseContext
       );
       sectionHtmls.push(sectionHtml);
     }
 
-    // Render recommendations if enabled
+    // Render recommendations if enabled using theme-specific mapper
     let recommendationsHtml = '';
     if (productPage.layout.showRecommendations && products.length > 1) {
       const otherProducts = products.filter(p => p.id !== selectedProduct.id).slice(0, 4);
       if (otherProducts.length > 0) {
-        const recMapping = mapProductsToFeaturedCollection(otherProducts, 'You May Also Like');
+        const recMapping = sectionMapper.mapProducts(otherProducts, 'You May Also Like');
         recommendationsHtml = await renderSection(
-          'featured-collection',
+          recMapping.sectionType,
           {
             section: recMapping.section,
             collection: recMapping.collection,
@@ -186,16 +191,20 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       ${sectionHtmls.join('\n')}
       ${recommendationsHtml}
     `.trim();
-  }, [products, productPage, renderSection]);
+  }, [products, productPage, renderSection, sectionMapper]);
 
   /**
    * Render the contact page
    */
   const renderContactPage = useCallback(async (baseContext: Record<string, unknown>): Promise<string> => {
-    // Render hero
+    // Get theme-specific section types
+    const heroSectionType = sectionMapper.getSectionType('hero');
+    const richTextSectionType = sectionMapper.getSectionType('richText');
+
+    // Render hero (using existing contact hero mapper for now)
     const heroMapping = mapContactHeroToImageBanner(contactPage.hero);
     const heroHtml = await renderSection(
-      'image-banner',
+      heroSectionType,
       { section: heroMapping.section },
       baseContext
     );
@@ -203,24 +212,24 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
     // Render contact info
     const contactInfoMapping = mapContactInfoToRichText(contactPage.contactInfo);
     const contactInfoHtml = await renderSection(
-      'rich-text',
+      richTextSectionType,
       { section: contactInfoMapping.section },
       baseContext
     );
 
-    // Render additional sections
+    // Render additional sections using theme-specific mapper
     const sectionHtmls: string[] = [];
     for (const section of contactPage.sections) {
       if (!section.enabled) continue;
 
-      const mapping = mapEditorSection(section);
+      const mapping = sectionMapper.mapEditorSection(section);
       if (!mapping) continue;
 
       const sectionHtml = await renderSection(
         mapping.sectionType,
         {
           section: mapping.section,
-          collection: 'collection' in mapping ? mapping.collection : undefined,
+          collection: mapping.collection,
         },
         baseContext
       );
@@ -232,7 +241,7 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       ${contactInfoHtml}
       ${sectionHtmls.join('\n')}
     `.trim();
-  }, [contactPage, renderSection]);
+  }, [contactPage, renderSection, sectionMapper]);
 
   /**
    * Render the full page based on active page

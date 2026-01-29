@@ -14,7 +14,10 @@
       "Bash(ls:*)",
       "Bash(git checkout:*)",
       "Bash(curl:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(xargs cat:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prisma db push:*)"
     ]
   }
 }

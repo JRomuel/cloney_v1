@@ -10,27 +10,28 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@shopify/app-bridge-react": "^4.1.5",
+    "@shopify/polaris": "^13.9.1",
+    "@shopify/shopify-api": "^11.6.0",
+    "cheerio": "^1.0.0",
+    "liquidjs": "^10.10.0",
     "next": "14.2.28",
+    "openai": "^4.77.0",
+    "playwright": "^1.49.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@shopify/shopify-api": "^11.6.0",
-    "@shopify/polaris": "^13.9.1",
-    "@shopify/app-bridge-react": "^4.1.5",
-    "@prisma/client": "^5.22.0",
-    "openai": "^4.77.0",
-    "cheerio": "^1.0.0",
-    "playwright": "^1.49.1",
+    "vercel": "^50.8.1",
     "zod": "^3.24.1",
-    "zustand": "^4.5.0",
-    "liquidjs": "^10.10.0"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "prisma": "^5.22.0",
     "@types/node": "^20.17.12",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "eslint": "^8.57.0",
-    "eslint-config-next": "14.2.28"
+    "eslint-config-next": "14.2.28",
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.2"
   }
 }

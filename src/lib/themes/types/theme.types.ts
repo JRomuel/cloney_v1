@@ -151,6 +151,11 @@ export interface SectionBlock {
   id: string;
   type: string;
   settings: Record<string, unknown>;
+  name?: string;
+  static?: boolean;
+  // Nested blocks support (used by Tinker theme)
+  blocks?: Record<string, SectionBlock>;
+  block_order?: string[];
 }
 
 export interface SectionSettings {
@@ -161,7 +166,7 @@ export interface LiquidSection {
   id: string;
   type: string;
   settings: SectionSettings;
-  blocks: SectionBlock[];
+  blocks: SectionBlock[] | Record<string, SectionBlock>;  // Support both array (Dawn) and object (Tinker) formats
   block_order: string[];
 }
 

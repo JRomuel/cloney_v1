@@ -71,6 +71,12 @@ export class ThemeRegistry {
       await this.loadTheme(themeId);
     }
 
+    // Update the engine's themeId for asset URL generation
+    const theme = this.themes.get(themeId);
+    if (theme?.engine) {
+      theme.engine.setThemeId(themeId);
+    }
+
     this.activeThemeId = themeId;
   }
 
@@ -163,14 +169,23 @@ export function getThemeRegistry(): ThemeRegistry {
       previewImage: '/themes/dawn/preview.png',
       source: 'bundled',
     });
+
+    // Register the bundled Tinker theme
+    themeRegistry.registerTheme('tinker', {
+      id: 'tinker',
+      name: 'Shopify Tinker',
+      version: '1.0.0',
+      previewImage: '/themes/tinker/preview.png',
+      source: 'bundled',
+    });
   }
   return themeRegistry;
 }
 
 /**
- * Initialize and load the default theme
+ * Initialize and load a theme
  */
-export async function initializeDefaultTheme(): Promise<void> {
+export async function initializeDefaultTheme(themeId: string = 'dawn'): Promise<void> {
   const registry = getThemeRegistry();
-  await registry.setActiveTheme('dawn');
+  await registry.setActiveTheme(themeId);
 }

@@ -30,6 +30,9 @@ export interface EditorState {
   productPage: ProductPageContent;
   contactPage: ContactPageContent;
 
+  // Theme
+  selectedThemeId: string;
+
   // UI
   activePage: EditorPage;
   activeTab: EditorTab;
@@ -72,6 +75,9 @@ export interface EditorState {
   updateContactPageSection: (sectionId: string, updates: Partial<Section>) => void;
   removeContactPageSection: (sectionId: string) => void;
 
+  // Actions - Theme
+  setSelectedThemeId: (themeId: string) => void;
+
   // Actions - UI
   setActivePage: (page: EditorPage) => void;
   setActiveTab: (tab: EditorTab) => void;
@@ -84,6 +90,7 @@ export interface EditorState {
     homepage: HomepageContent | null;
     products: EditableProduct[] | null;
     styles: StyleSettings | null;
+    selectedThemeId?: string;
   }) => void;
   markSaved: () => void;
   setSaving: (saving: boolean) => void;
@@ -98,6 +105,7 @@ const initialState = {
   styles: defaultStyleSettings,
   productPage: defaultProductPageContent,
   contactPage: defaultContactPageContent,
+  selectedThemeId: 'dawn',
   activePage: 'home' as EditorPage,
   activeTab: 'homepage' as EditorTab,
   previewMode: 'desktop' as PreviewMode,
@@ -324,6 +332,10 @@ export const useEditorStore = create<EditorState>()(
           isDirty: true,
         })),
 
+      // Theme Actions
+      setSelectedThemeId: (selectedThemeId) =>
+        set({ selectedThemeId, isDirty: true }),
+
       // UI Actions
       setActivePage: (activePage) =>
         set({ activePage }),
@@ -346,6 +358,7 @@ export const useEditorStore = create<EditorState>()(
           homepage: data.homepage || defaultHomepageContent,
           products: singleProduct,
           styles: data.styles || defaultStyleSettings,
+          selectedThemeId: data.selectedThemeId || 'dawn',
           productPage: {
             ...defaultProductPageContent,
             selectedProductId,
@@ -366,7 +379,11 @@ export const useEditorStore = create<EditorState>()(
         set({ isSaving }),
 
       reset: () =>
-        set(initialState),
+        set((state) => ({
+          ...initialState,
+          // Preserve selectedThemeId when resetting
+          selectedThemeId: state.selectedThemeId,
+        })),
     }),
     {
       name: 'editor-storage',
@@ -378,6 +395,7 @@ export const useEditorStore = create<EditorState>()(
         styles: state.styles,
         productPage: state.productPage,
         contactPage: state.contactPage,
+        selectedThemeId: state.selectedThemeId,
         activePage: state.activePage,
         activeTab: state.activeTab,
         previewMode: state.previewMode,

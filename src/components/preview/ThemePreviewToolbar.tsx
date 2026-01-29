@@ -1,44 +1,39 @@
 'use client';
 
-import { ButtonGroup, Button, InlineStack, Text, Select } from '@shopify/polaris';
+import { ButtonGroup, Button, InlineStack, Select, Text, Badge } from '@shopify/polaris';
 import { DesktopIcon, MobileIcon } from '@shopify/polaris-icons';
 import { useEditorStore } from '@/stores/editorStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { EditorPage } from '@/types/editor';
 import styles from './ThemePreviewToolbar.module.css';
 
+const PAGE_OPTIONS = [
+  { label: 'Home', value: 'home' },
+  { label: 'Product', value: 'product' },
+  { label: 'Contact', value: 'contact' },
+];
+
 export function ThemePreviewToolbar() {
-  const { previewMode, setPreviewMode } = useEditorStore();
-  const { activeThemeId, availableThemes, setActiveTheme, isLoading } = useThemeStore();
+  const { previewMode, setPreviewMode, activePage, setActivePage } = useEditorStore();
+  const { availableThemes, activeThemeId } = useThemeStore();
 
-  // Theme options for the selector
-  const themeOptions = availableThemes.map(theme => ({
-    label: theme.name,
-    value: theme.id,
-  }));
-
-  // Only show theme selector if there are multiple themes
-  const showThemeSelector = availableThemes.length > 1;
+  const selectedTheme = availableThemes.find(t => t.id === activeThemeId);
+  const themeName = selectedTheme?.name || 'Theme';
 
   return (
     <div className={styles.toolbar}>
       <InlineStack align="space-between" blockAlign="center" gap="400">
         <InlineStack gap="300" blockAlign="center">
+          <Select
+            label="Page"
+            labelHidden
+            options={PAGE_OPTIONS}
+            value={activePage}
+            onChange={(value) => setActivePage(value as EditorPage)}
+          />
           <Text as="span" variant="bodySm" tone="subdued">
-            Live Preview
+            Theme: <Text as="span" variant="bodySm" fontWeight="semibold">{themeName}</Text>
           </Text>
-
-          {showThemeSelector && (
-            <div className={styles.themeSelector}>
-              <Select
-                label=""
-                labelHidden
-                options={themeOptions}
-                value={activeThemeId}
-                onChange={setActiveTheme}
-                disabled={isLoading}
-              />
-            </div>
-          )}
         </InlineStack>
 
         <ButtonGroup variant="segmented">

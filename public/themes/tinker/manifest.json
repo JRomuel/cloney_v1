@@ -1,0 +1,132 @@
+{
+  "config": {
+    "id": "tinker",
+    "name": "Shopify Tinker",
+    "version": "3.2.1",
+    "previewImage": "/themes/tinker/preview.png",
+    "source": "bundled"
+  },
+  "sections": [
+    {
+      "type": "hero",
+      "name": "Hero",
+      "liquidFile": "sections/hero.liquid",
+      "editorType": "hero"
+    },
+    {
+      "type": "product-list",
+      "name": "Product List",
+      "liquidFile": "sections/product-list.liquid",
+      "editorType": "products"
+    },
+    {
+      "type": "slideshow",
+      "name": "Slideshow",
+      "liquidFile": "sections/slideshow.liquid",
+      "editorType": "hero"
+    },
+    {
+      "type": "media-with-content",
+      "name": "Media with Content",
+      "liquidFile": "sections/media-with-content.liquid",
+      "editorType": "features"
+    },
+    {
+      "type": "collection-list",
+      "name": "Collection List",
+      "liquidFile": "sections/collection-list.liquid",
+      "editorType": "gallery"
+    },
+    {
+      "type": "marquee",
+      "name": "Marquee",
+      "liquidFile": "sections/marquee.liquid",
+      "editorType": "text"
+    }
+  ],
+  "layout": {
+    "theme": "layout/theme.liquid",
+    "header": "sections/header.liquid",
+    "footer": "sections/footer.liquid"
+  },
+  "snippets": [
+    "snippets/text.liquid",
+    "snippets/button.liquid",
+    "snippets/group.liquid",
+    "snippets/spacing-padding.liquid",
+    "snippets/spacing-style.liquid",
+    "snippets/typography-style.liquid",
+    "snippets/layout-panel-style.liquid",
+    "snippets/size-style.liquid",
+    "snippets/overlay.liquid",
+    "snippets/color-schemes.liquid",
+    "snippets/theme-styles-variables.liquid",
+    "snippets/image.liquid",
+    "snippets/media.liquid",
+    "snippets/icon.liquid",
+    "snippets/product-card.liquid",
+    "snippets/collection-card.liquid",
+    "snippets/slideshow.liquid",
+    "snippets/slideshow-slide.liquid",
+    "snippets/slideshow-controls.liquid",
+    "snippets/slideshow-arrows.liquid",
+    "snippets/background-media.liquid",
+    "snippets/gap-style.liquid",
+    "snippets/border-override.liquid",
+    "snippets/divider.liquid"
+  ],
+  "assets": {
+    "css": [
+      "assets/base.css",
+      "assets/overflow-list.css"
+    ]
+  },
+  "settingsSchema": {
+    "colors": [
+      {
+        "id": "colors_primary",
+        "label": "Primary",
+        "default": "#121212",
+        "cssVariable": "--color-foreground"
+      },
+      {
+        "id": "colors_secondary",
+        "label": "Secondary",
+        "default": "#666666",
+        "cssVariable": "--color-foreground-secondary"
+      },
+      {
+        "id": "colors_background",
+        "label": "Background",
+        "default": "#ffffff",
+        "cssVariable": "--color-background"
+      },
+      {
+        "id": "colors_text",
+        "label": "Text",
+        "default": "#121212",
+        "cssVariable": "--color-foreground"
+      },
+      {
+        "id": "colors_accent",
+        "label": "Accent",
+        "default": "#121212",
+        "cssVariable": "--color-primary"
+      }
+    ],
+    "typography": [
+      {
+        "id": "type_header_font",
+        "label": "Heading Font",
+        "default": "Assistant",
+        "cssVariable": "--font-heading--family"
+      },
+      {
+        "id": "type_body_font",
+        "label": "Body Font",
+        "default": "Assistant",
+        "cssVariable": "--font-body--family"
+      }
+    ]
+  }
+}

@@ -118,29 +118,52 @@ export function createMockCollection(
 }
 
 /**
- * Parse a hex color to RGB components
+ * Color object that supports both Dawn and Tinker color access patterns
  */
-function hexToRgb(hex: string): { red: number; green: number; blue: number; rgb: string } {
+interface ShopifyColor {
+  red: number;
+  green: number;
+  blue: number;
+  rgb: string;
+  rgba: string;
+}
+
+/**
+ * Parse a hex color to RGB components with rgba support
+ */
+function hexToRgb(hex: string): ShopifyColor {
   // Remove # if present
   const cleanHex = hex.replace('#', '');
   const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
   const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
   const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
-  return { red: r, green: g, blue: b, rgb: `${r}, ${g}, ${b}` };
+  return {
+    red: r,
+    green: g,
+    blue: b,
+    rgb: `${r}, ${g}, ${b}`,
+    rgba: `${r}, ${g}, ${b}, 1`,
+  };
 }
 
 /**
  * Create a color scheme object for Shopify settings
+ * Supports both Dawn and Tinker theme color scheme structures
  */
 function createColorScheme(id: string, styles: StyleSettings) {
   const background = hexToRgb(styles.colors.background);
   const text = hexToRgb(styles.colors.text);
   const primary = hexToRgb(styles.colors.primary);
   const accent = hexToRgb(styles.colors.accent);
+  // Create a slightly lighter/darker version for hover states
+  const primaryHover = hexToRgb(styles.colors.accent);
+  // Border color - slightly transparent text
+  const border = hexToRgb(styles.colors.text);
 
   return {
     id,
     settings: {
+      // Dawn-style properties
       background,
       background_gradient: '',
       text,
@@ -148,6 +171,43 @@ function createColorScheme(id: string, styles: StyleSettings) {
       button: primary,
       button_label: background,
       secondary_button_label: primary,
+      // Tinker-style properties
+      foreground: text,
+      foreground_heading: text,
+      primary: primary,
+      primary_hover: primaryHover,
+      border: border,
+      // Button colors for Tinker
+      primary_button_text: background,
+      primary_button_background: primary,
+      primary_button_border: primary,
+      primary_button_hover_text: background,
+      primary_button_hover_background: primaryHover,
+      primary_button_hover_border: primaryHover,
+      secondary_button_text: text,
+      secondary_button_background: background,
+      secondary_button_border: text,
+      secondary_button_hover_text: background,
+      secondary_button_hover_background: text,
+      secondary_button_hover_border: text,
+      // Input colors for Tinker
+      input_background: background,
+      input_text_color: text,
+      input_border_color: border,
+      input_hover_background: background,
+      // Variant picker colors for Tinker
+      variant_background_color: background,
+      variant_border_color: border,
+      variant_text_color: text,
+      variant_hover_background_color: background,
+      variant_hover_text_color: text,
+      variant_hover_border_color: primary,
+      selected_variant_background_color: primary,
+      selected_variant_border_color: primary,
+      selected_variant_text_color: background,
+      selected_variant_hover_background_color: primaryHover,
+      selected_variant_hover_text_color: background,
+      selected_variant_hover_border_color: primaryHover,
     },
   };
 }
@@ -173,16 +233,99 @@ function createFontObject(fontFamily: string) {
  * Convert editor styles to Shopify settings
  */
 export function editorStylesToSettings(styles: StyleSettings): ShopifySettings {
+  const headingFont = createFontObject(styles.typography.headingFont);
+  const bodyFont = createFontObject(styles.typography.bodyFont);
+
   return {
     colors_primary: styles.colors.primary,
     colors_secondary: styles.colors.secondary,
     colors_background: styles.colors.background,
     colors_text: styles.colors.text,
     colors_accent: styles.colors.accent,
-    type_header_font: createFontObject(styles.typography.headingFont),
-    type_body_font: createFontObject(styles.typography.bodyFont),
-    // Color schemes for Dawn theme
-    color_schemes: [createColorScheme('scheme-1', styles)],
+    // Dawn font settings
+    type_header_font: headingFont,
+    type_body_font: bodyFont,
+    // Tinker font settings
+    type_subheading_font: headingFont,
+    type_heading_font: headingFont,
+    type_accent_font: headingFont,
+    // Typography size settings for Tinker
+    type_size_paragraph: 16,
+    type_size_h1: 48,
+    type_size_h2: 36,
+    type_size_h3: 28,
+    type_size_h4: 22,
+    type_size_h5: 18,
+    type_size_h6: 16,
+    // Font assignments for headings (body, heading, subheading, accent)
+    type_font_h1: 'heading',
+    type_font_h2: 'heading',
+    type_font_h3: 'heading',
+    type_font_h4: 'heading',
+    type_font_h5: 'heading',
+    type_font_h6: 'heading',
+    type_font_button_primary: 'body',
+    type_font_button_secondary: 'body',
+    // Line height settings
+    type_line_height_paragraph: 'body-normal',
+    type_line_height_h1: 'heading-normal',
+    type_line_height_h2: 'heading-normal',
+    type_line_height_h3: 'heading-normal',
+    type_line_height_h4: 'heading-normal',
+    type_line_height_h5: 'heading-normal',
+    type_line_height_h6: 'heading-normal',
+    // Letter spacing settings
+    type_letter_spacing_h1: 'heading-normal',
+    type_letter_spacing_h2: 'heading-normal',
+    type_letter_spacing_h3: 'heading-normal',
+    type_letter_spacing_h4: 'heading-normal',
+    type_letter_spacing_h5: 'heading-normal',
+    type_letter_spacing_h6: 'heading-normal',
+    // Text case settings
+    type_case_h1: 'none',
+    type_case_h2: 'none',
+    type_case_h3: 'none',
+    type_case_h4: 'none',
+    type_case_h5: 'none',
+    type_case_h6: 'none',
+    button_text_case: 'none',
+    button_text_case_primary: 'none',
+    button_text_case_secondary: 'none',
+    // Color schemes for both Dawn and Tinker themes
+    color_schemes: [
+      createColorScheme('scheme-1', styles),
+      createColorScheme('scheme-2', styles),
+      createColorScheme('scheme-3', styles),
+      createColorScheme('scheme-4', styles),
+      createColorScheme('scheme-5', styles),
+    ],
+    // Tinker UI settings
+    pills_border_radius: 20,
+    inputs_border_radius: 4,
+    button_border_radius_primary: 4,
+    button_border_radius_secondary: 4,
+    primary_button_border_width: 1,
+    secondary_button_border_width: 1,
+    input_border_width: 1,
+    popover_border_radius: 4,
+    popover_border_width: 1,
+    popover_border: 'solid',
+    popover_border_opacity: 10,
+    popover_drop_shadow: true,
+    drawer_drop_shadow: true,
+    variant_swatch_border_opacity: 30,
+    variant_swatch_border_width: 1,
+    variant_swatch_border_style: 'solid',
+    variant_swatch_width: 36,
+    variant_swatch_height: 36,
+    variant_swatch_radius: 4,
+    variant_button_radius: 4,
+    variant_button_border_width: 1,
+    icon_stroke: 'normal',
+    cart_price_font: 'body',
+    // Transition settings
+    page_transition_enabled: false,
+    transition_to_main_product: false,
     // Additional settings Dawn expects
     body_scale: 100,
     heading_scale: 100,
@@ -271,6 +414,19 @@ export function editorStylesToSettings(styles: StyleSettings): ShopifySettings {
     animations_reveal_on_scroll: false,
     cart_type: 'page',
     predictive_search_enabled: false,
+    // Logo settings - null means no custom logo, use text
+    logo: null,
+    logo_width: 100,
+    // Social media settings
+    social_twitter_link: '',
+    social_facebook_link: '',
+    social_instagram_link: '',
+    // Header settings
+    show_search: true,
+    enable_sticky_header: 'none',
+    enable_transparent_header_home: false,
+    enable_transparent_header_product: false,
+    enable_transparent_header_collection: false,
   };
 }
 
@@ -554,8 +710,8 @@ export function createPageRenderContext(
     },
     all_products: allProducts,
     // Section contexts for header/footer rendering
+    // Note: Announcement bar context removed to avoid 404s for themes that don't have it
     sections: {
-      'announcement-bar': createAnnouncementBarContext(`Welcome to ${shopName}`),
       header: createHeaderSectionContext(shopName),
       footer: createFooterSectionContext(shopName),
     },
