@@ -38,6 +38,7 @@ export class LiquidEngine {
     this.registerShopifyCommentTag();
     this.registerShopifyContentForTag();
     this.registerShopifyDocTag();
+    this.registerShopifyPaginateTag();
   }
 
   /**
@@ -212,9 +213,64 @@ export class LiquidEngine {
       return count === 1 ? singular : plural;
     });
 
-    // T (translate) filter - just returns the key for preview
-    this.engine.registerFilter('t', (value: string) => {
-      return value;
+    // T (translate) filter - provides common translations for preview
+    this.engine.registerFilter('t', (value: string, ...args: unknown[]) => {
+      // Common Shopify translations for preview
+      const translations: Record<string, string> = {
+        // Product/price related - these are often in visually-hidden spans
+        'products.product.price.regular_price': 'Regular price',
+        'products.product.price.sale_price': 'Sale price',
+        'products.product.price.from_price_html': 'From {{ price }}',
+        'products.product.price.unit_price': 'Unit price',
+        'products.product.vendor': 'Vendor',
+        'products.product.sku': 'SKU',
+        'products.product.quantity.label': 'Quantity',
+        'products.product.quantity.increase': 'Increase quantity',
+        'products.product.quantity.decrease': 'Decrease quantity',
+        'products.product.add_to_cart': 'Add to cart',
+        'products.product.sold_out': 'Sold out',
+        'products.product.unavailable': 'Unavailable',
+        'products.product.volume_pricing.price_range': '{{ minimum }} - {{ maximum }}',
+        // Onboarding/placeholder - return empty to hide these
+        'onboarding.product_title': '',
+        'onboarding.collection_title': '',
+        // General
+        'general.slider.name': 'Slider',
+        'general.search.placeholder': 'Search',
+        'general.cart.view': 'View cart',
+        'general.cart.empty': 'Your cart is empty',
+        'accessibility.skip_to_text': 'Skip to content',
+        'accessibility.close': 'Close',
+      };
+
+      let translated = translations[value];
+
+      // If no translation found, return empty string for known accessibility keys
+      // to avoid showing raw translation keys
+      if (translated === undefined) {
+        // Return empty for keys that are typically accessibility/hidden text
+        if (value.includes('accessibility.') ||
+            value.includes('price.regular_price') ||
+            value.includes('price.sale_price') ||
+            value.includes('onboarding.')) {
+          return '';
+        }
+        // For other keys, return the key itself (helps with debugging)
+        return value;
+      }
+
+      // Handle interpolation: replace {{ variable }} with passed arguments
+      if (args.length > 0 && typeof translated === 'string') {
+        for (const arg of args) {
+          if (typeof arg === 'object' && arg !== null) {
+            for (const [key, val] of Object.entries(arg)) {
+              translated = translated.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(val));
+            }
+          }
+        }
+      }
+
+      return translated;
     });
 
     // JSON filter
@@ -290,9 +346,16 @@ export class LiquidEngine {
       return `<img src="${urlStr}"${attrStr}>`;
     });
 
-    // Placeholder SVG filter
-    this.engine.registerFilter('placeholder_svg_tag', (type: string) => {
-      return `<svg class="placeholder-svg" viewBox="0 0 100 100"><rect fill="#ddd" width="100" height="100"/></svg>`;
+    // Placeholder SVG filter - renders Shopify-style product placeholder
+    // Usage: {{ 'product-apparel-2' | placeholder_svg_tag: 'placeholder-svg' }}
+    this.engine.registerFilter('placeholder_svg_tag', (type: string, className?: string) => {
+      const cssClass = className || 'placeholder-svg';
+      // Product placeholder with t-shirt/apparel icon similar to Shopify's style
+      return `<svg class="${cssClass}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 525.5 525.5" fill="#c4cdd5" style="width:100%;height:100%;display:block;">
+        <path d="M375.5 345.2c0-.1 0-.1 0 0 0-.1 0-.1 0 0-1.1-2.9-2.3-5.5-3.4-7.8-1.4-2.9-2.7-5.3-3.7-7.1-.6-1.1-1.1-2-1.5-2.5-.4-.6-.7-.9-.8-1.1l-21.6-63.5c-2.1-6.2-8.1-10.4-14.7-10.4H195c-6.6 0-12.6 4.2-14.7 10.4l-21.6 63.5c-.1.1-.4.5-.8 1.1-.4.6-.9 1.4-1.5 2.5-1 1.8-2.3 4.2-3.7 7.1-1.2 2.3-2.3 4.9-3.4 7.8 0 .1 0 .1 0 0 0 .1 0 .1 0 0-3.3 8.9-6.6 19.1-9.3 30.3h248.3c-2.7-11.2-6-21.4-9.3-30.3 0 0 0 0 0 0z"/>
+        <path d="M262.7 95.4c-32.6 0-59 26.4-59 59s26.4 59 59 59 59-26.4 59-59-26.4-59-59-59zm0 93c-18.8 0-34-15.2-34-34s15.2-34 34-34 34 15.2 34 34-15.2 34-34 34z"/>
+        <rect x="13" y="386.5" width="499.5" height="126"/>
+      </svg>`;
     });
 
     // Color filters
@@ -648,27 +711,35 @@ export class LiquidEngine {
           }
         }
       },
-      async render(ctx: Context, emitter: Emitter) {
+      * render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
         const snippetName = this.snippetName;
         const variables = this.variables;
 
-        if (!snippetName) return '';
+        if (!snippetName) return;
 
         try {
           // Load the snippet template
-          const templateContent = await self.loader.loadTemplate(`snippets/${snippetName}.liquid`);
+          const templateContent = (yield self.loader.loadTemplate(`snippets/${snippetName}.liquid`)) as string;
 
           // Preprocess the template
           const cleanTemplate = self.stripSchemaTag(templateContent);
 
           // Build local scope with passed variables
           const localScope: Record<string, unknown> = {};
+          // Cast engine to access evalValue method (exists but not in public types)
+          const engine = self.engine as unknown as { evalValue: (expr: string, ctx: Context) => Promise<unknown> };
           for (const [key, valueExpr] of Object.entries(variables)) {
-            // Evaluate the expression in the current context
-            // Split dotted paths for proper context traversal (e.g., "block.settings.link")
-            const pathParts = (valueExpr as string).split('.');
-            const value = ctx.get(pathParts);
-            localScope[key] = value !== undefined ? value : (valueExpr as string);
+            // Use liquidjs expression evaluation to properly resolve all variable types
+            // including loop variables, dotted paths, and literals
+            try {
+              const value = yield engine.evalValue(valueExpr as string, ctx);
+              localScope[key] = value;
+            } catch {
+              // Fallback: try direct context lookup for simple paths
+              const pathParts = (valueExpr as string).split('.');
+              const value = ctx.get(pathParts);
+              localScope[key] = value !== undefined ? value : (valueExpr as string);
+            }
           }
 
           // AUTO-INCLUDE: If 'block' not explicitly passed but exists in parent context,
@@ -686,7 +757,7 @@ export class LiquidEngine {
 
           // Parse and render
           const templates = self.engine.parse(cleanTemplate);
-          const result = await self.engine.render(templates, fullContext);
+          const result = (yield self.engine.render(templates, fullContext)) as string;
           emitter.write(result);
         } catch (error) {
           console.warn(`Failed to render snippet ${snippetName}:`, error);
@@ -989,6 +1060,102 @@ export class LiquidEngine {
       render() {
         // Doc tags don't render anything - they're documentation only
         return '';
+      },
+    });
+  }
+
+  /**
+   * Register the {% paginate %} tag for collection pagination
+   * Shopify uses: {% paginate collection.products by 12 %}...{% endpaginate %}
+   * This creates a paginate object in the context for rendering pagination controls
+   */
+  private registerShopifyPaginateTag(): void {
+    this.engine.registerTag('paginate', {
+      parse(tagToken: TagToken, remainTokens: TopLevelToken[]) {
+        // Parse: {% paginate collection.products by 12 %}
+        this.args = tagToken.args;
+
+        // Parse the arguments to extract the collection variable and page size
+        // Format: "collection.products by 12" or "search.results by 24"
+        const argsMatch = this.args.match(/^([\w.]+)\s+by\s+(\d+)/);
+        if (argsMatch) {
+          this.collectionPath = argsMatch[1].split('.');
+          this.pageSize = parseInt(argsMatch[2], 10) || 12;
+        } else {
+          this.collectionPath = ['collection', 'products'];
+          this.pageSize = 12;
+        }
+
+        // Use LiquidJS's stream parser to collect templates until endpaginate
+        this.tpls = [];
+        const stream = this.liquid.parser.parseStream(remainTokens);
+        stream
+          .on('template', (tpl: Template) => this.tpls.push(tpl))
+          .on('tag:endpaginate', () => stream.stop())
+          .start();
+      },
+      * render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
+        // Get the items to paginate from context
+        const items = ctx.get(this.collectionPath) || [];
+        const itemsArray = Array.isArray(items) ? items : [];
+        const pageSize = this.pageSize || 12;
+        const totalItems = itemsArray.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        // For preview, always show page 1
+        const currentPage = 1;
+        const startIndex = 0;
+        const endIndex = Math.min(pageSize, totalItems);
+        const paginatedItems = itemsArray.slice(startIndex, endIndex);
+
+        // Create a mock paginate object matching Shopify's structure
+        const paginate = {
+          current_page: currentPage,
+          current_offset: startIndex,
+          page_size: pageSize,
+          pages: totalPages,
+          items: paginatedItems,
+          previous: null,
+          next: totalPages > 1 ? { url: '?page=2', title: 'Next', is_link: true } : null,
+          parts: Array.from({ length: totalPages }, (_, i) => ({
+            title: String(i + 1),
+            url: `?page=${i + 1}`,
+            is_link: i + 1 !== currentPage,
+          })),
+          page_param: 'page',
+        };
+
+        // Push paginate object to context
+        // Context.push/pop exist at runtime but aren't in the TS types
+        const ctxAny = ctx as unknown as { push: (scope: object) => void; pop: () => void };
+        ctxAny.push({ paginate });
+
+        // Update the collection with paginated items in the context
+        // e.g., for "collection.products", update collection.products to paginatedItems
+        let pushedCollection = false;
+        if (this.collectionPath.length >= 2) {
+          const rootKey = this.collectionPath[0];
+          const rootObj = ctx.get([rootKey]);
+          if (rootObj && typeof rootObj === 'object') {
+            const lastKey = this.collectionPath[this.collectionPath.length - 1];
+            ctxAny.push({
+              [rootKey]: {
+                ...(rootObj as object),
+                [lastKey]: paginatedItems,
+              },
+            });
+            pushedCollection = true;
+          }
+        }
+
+        // Render the inner templates
+        yield this.liquid.renderer.renderTemplates(this.tpls, ctx, emitter);
+
+        // Pop context scopes
+        if (pushedCollection) {
+          ctxAny.pop();
+        }
+        ctxAny.pop();
       },
     });
   }

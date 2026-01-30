@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import type { LiquidEngine } from '@/lib/themes/core/LiquidEngine';
+import type { EditableProduct } from '@/types/editor';
 import {
   editorStylesToSettings,
   createPageRenderContext,
@@ -13,7 +14,44 @@ import {
   mapContactInfoToRichText,
 } from '@/lib/themes/adapters/SectionMapper';
 import { getSectionMapper } from '@/lib/themes/adapters/ThemeSectionMapper';
+import { generateSectionId } from '@/lib/themes/utils/sectionId';
 import type { UpdateType } from '@/lib/themes/types/theme.types';
+
+// Default products to show when no products have been added
+const DEFAULT_PRODUCTS: EditableProduct[] = [
+  {
+    id: 'default-1',
+    title: 'Classic White T-Shirt',
+    description: 'Premium cotton t-shirt with a comfortable fit',
+    price: 29.99,
+    tags: ['apparel', 'shirts'],
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+  },
+  {
+    id: 'default-2',
+    title: 'Vintage Denim Jacket',
+    description: 'Timeless denim jacket with classic styling',
+    price: 89.99,
+    tags: ['apparel', 'jackets'],
+    imageUrl: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400',
+  },
+  {
+    id: 'default-3',
+    title: 'Leather Crossbody Bag',
+    description: 'Elegant leather bag for everyday use',
+    price: 59.99,
+    tags: ['accessories', 'bags'],
+    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400',
+  },
+  {
+    id: 'default-4',
+    title: 'Canvas Sneakers',
+    description: 'Comfortable canvas sneakers for casual wear',
+    price: 49.99,
+    tags: ['footwear', 'sneakers'],
+    imageUrl: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400',
+  },
+];
 
 export interface RenderResult {
   html: string;
@@ -28,7 +66,7 @@ export interface PreviewRendererState {
 
 const CONTENT_DEBOUNCE_MS = 150;
 
-export function usePreviewRenderer(engine: LiquidEngine | null) {
+export function usePreviewRenderer(engine: LiquidEngine | null, testMode: boolean = false) {
   const { homepage, products, styles, activePage, productPage, contactPage, selectedThemeId } = useEditorStore();
 
   const [state, setState] = useState<PreviewRendererState>({
@@ -98,19 +136,19 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       sectionHtmls.push(sectionHtml);
     }
 
-    // Render products section if there are products
-    let productsHtml = '';
-    if (products.length > 0) {
-      const productsMapping = sectionMapper.mapProducts(products, 'Featured Products');
-      productsHtml = await renderSection(
-        productsMapping.sectionType,
-        {
-          section: productsMapping.section,
-          collection: productsMapping.collection,
-        },
-        baseContext
-      );
-    }
+    // Use default products if no products have been added
+    const productsToRender = products.length > 0 ? products : DEFAULT_PRODUCTS;
+
+    // Render products section
+    const productsMapping = sectionMapper.mapProducts(productsToRender, 'Featured Products');
+    const productsHtml = await renderSection(
+      productsMapping.sectionType,
+      {
+        section: productsMapping.section,
+        collection: productsMapping.collection,
+      },
+      baseContext
+    );
 
     return `
       ${heroHtml}
@@ -244,9 +282,109 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
   }, [contactPage, renderSection, sectionMapper]);
 
   /**
+   * Render the theme in test mode - like a fresh Shopify theme with default sections
+   */
+  const renderFreshTheme = useCallback(async (): Promise<RenderResult> => {
+    if (!engine) {
+      return { html: '', error: 'Engine not ready' };
+    }
+
+    try {
+      const loader = engine.getLoader();
+
+      // 1. Load the default template configuration
+      const templateConfig = await loader.loadTemplateConfig('index');
+      if (!templateConfig) {
+        return { html: '', error: 'Failed to load template config' };
+      }
+
+      // 2. Create base context with mock data (including products for collection sections)
+      const settings = editorStylesToSettings(styles);
+      // Use default products if no products have been added
+      const productsForContext = products.length > 0 ? products : DEFAULT_PRODUCTS;
+      const baseContext = createPageRenderContext('My Store', settings, productsForContext);
+
+      // 3. Render each section from the template config
+      const sectionHtmls: string[] = [];
+      for (const sectionId of templateConfig.order) {
+        const sectionDef = templateConfig.sections[sectionId];
+        if (!sectionDef) continue;
+
+        // Convert template config blocks to array format expected by Liquid templates
+        const blocksArray = sectionDef.blocks
+          ? Object.entries(sectionDef.blocks).map(([id, block]) => ({
+              id,
+              type: block.type,
+              settings: block.settings || {},
+              shopify_attributes: '',
+            }))
+          : [];
+
+        // Build section context matching Shopify's section object structure
+        const sectionSettings: Record<string, unknown> = { ...(sectionDef.settings || {}) };
+
+        // Resolve collection handles to actual collection objects
+        // In Shopify, "collection": "all" gets resolved to the actual collection object
+        if (sectionSettings.collection && typeof sectionSettings.collection === 'string') {
+          const collectionHandle = sectionSettings.collection as string;
+          // Look up the collection from the base context's collections
+          const resolvedCollection = baseContext.collections?.[collectionHandle] || baseContext.collection;
+          if (resolvedCollection) {
+            sectionSettings.collection = resolvedCollection;
+          }
+        }
+
+        const sectionContext = {
+          section: {
+            id: generateSectionId(sectionId),
+            type: sectionDef.type,
+            settings: sectionSettings,
+            blocks: blocksArray,
+            block_order: sectionDef.block_order || [],
+          },
+          // Also pass collection at top level for templates that access it directly
+          collection: baseContext.collection,
+        };
+
+        // Render the section using its type (e.g., 'image-banner' -> 'sections/image-banner.liquid')
+        try {
+          const sectionHtml = await renderSection(
+            sectionDef.type,
+            sectionContext,
+            baseContext
+          );
+          sectionHtmls.push(sectionHtml);
+        } catch (sectionErr) {
+          console.warn(`[Preview] Failed to render section ${sectionDef.type}:`, sectionErr);
+          sectionHtmls.push(`<!-- Section ${sectionDef.type} failed to render -->`);
+        }
+      }
+
+      // 4. Combine sections and wrap in layout
+      const contentForLayout = sectionHtmls.join('\n');
+      const fullHtml = await engine.renderPage(contentForLayout, {
+        ...baseContext,
+        content_for_layout: contentForLayout,
+      });
+
+      console.log('[Preview] Fresh theme - rendered HTML length:', fullHtml.length);
+      return { html: fullHtml, error: null };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Fresh theme render failed';
+      console.error('Fresh theme render error:', err);
+      return { html: '', error: errorMessage };
+    }
+  }, [engine, styles, products, renderSection]);
+
+  /**
    * Render the full page based on active page
    */
   const renderFullPage = useCallback(async (): Promise<RenderResult> => {
+    // In test mode, render fresh theme with default sections
+    if (testMode) {
+      return renderFreshTheme();
+    }
+
     if (!engine) {
       return { html: '', error: 'Engine not ready' };
     }
@@ -255,7 +393,9 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       // Create base context with editor data
       const settings = editorStylesToSettings(styles);
       const brandName = homepage.hero.title || 'My Store';
-      const baseContext = createPageRenderContext(brandName, settings, products);
+      // Use default products if no products have been added
+      const productsForContext = products.length > 0 ? products : DEFAULT_PRODUCTS;
+      const baseContext = createPageRenderContext(brandName, settings, productsForContext);
 
       // Render page content based on active page
       let contentForLayout: string;
@@ -291,7 +431,7 @@ export function usePreviewRenderer(engine: LiquidEngine | null) {
       console.error('Render error:', err);
       return { html: '', error: errorMessage };
     }
-  }, [engine, homepage, products, styles, activePage, renderHomePage, renderProductPage, renderContactPage]);
+  }, [engine, homepage, products, styles, activePage, renderHomePage, renderProductPage, renderContactPage, testMode, renderFreshTheme]);
 
   /**
    * Trigger a render with appropriate debouncing

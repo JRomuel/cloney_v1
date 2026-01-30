@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/db/prisma';
 import { runGenerationPipeline, getShopContext } from '@/lib/pipeline/generator';
 import { formatErrorResponse, ValidationError, NotFoundError } from '@/errors';
+import { enforceGenerationLimit, incrementGenerationCount } from '@/lib/billing/guards';
 
 const GenerateRequestSchema = z.object({
   url: z.string().url('Invalid URL format'),
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('Shop not found or not authorized');
     }
 
+    // Check billing limits before creating generation
+    await enforceGenerationLimit(shopDomain);
+
     // Create generation record
     const generation = await prisma.generation.create({
       data: {
@@ -52,6 +56,9 @@ export async function POST(request: NextRequest) {
         progress: 0,
       },
     });
+
+    // Increment generation count for billing
+    await incrementGenerationCount(shopDomain);
 
     // Start the pipeline asynchronously
     // In production, this should be moved to a background job queue

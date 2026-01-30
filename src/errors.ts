@@ -79,6 +79,30 @@ export class EncryptionError extends AppError {
   }
 }
 
+export class BillingError extends AppError {
+  constructor(message: string) {
+    super(message, 402, 'BILLING_ERROR');
+  }
+}
+
+export class PlanLimitError extends AppError {
+  public readonly used: number;
+  public readonly limit: number;
+  public readonly plan: string;
+
+  constructor(
+    message: string,
+    used: number,
+    limit: number,
+    plan: string
+  ) {
+    super(message, 402, 'PLAN_LIMIT_REACHED');
+    this.used = used;
+    this.limit = limit;
+    this.plan = plan;
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }

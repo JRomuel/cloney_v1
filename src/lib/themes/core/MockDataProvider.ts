@@ -14,7 +14,7 @@ import type { EditableProduct, StyleSettings } from '@/types/editor';
 /**
  * Create a mock Shopify shop object
  */
-export function createMockShop(name: string = 'My Store'): ShopifyShop {
+export function createMockShop(name: string = 'My Store', productsCount: number = 10): ShopifyShop {
   return {
     name,
     email: 'store@example.com',
@@ -22,6 +22,7 @@ export function createMockShop(name: string = 'My Store'): ShopifyShop {
     money_format: '${{amount}}',
     money_with_currency_format: '${{amount}} USD',
     customer_accounts_enabled: false, // Disable account links in preview
+    products_count: productsCount, // Required for featured-collection section
   };
 }
 
@@ -62,6 +63,7 @@ export function createMockVariant(
 
 /**
  * Convert an editor product to a mock Shopify product
+ * Includes all properties required by Shopify Liquid templates
  */
 export function editorProductToShopify(product: EditableProduct, index: number): ShopifyProduct {
   const handle = product.title
@@ -70,6 +72,76 @@ export function editorProductToShopify(product: EditableProduct, index: number):
     .replace(/^-+|-+$/g, '');
 
   const priceInCents = Math.round(product.price * 100);
+  const compareAtPrice = product.compareAtPrice
+    ? Math.round(product.compareAtPrice * 100)
+    : null;
+
+  // Create mock variant with all required properties
+  const variant = {
+    id: index + 1,
+    title: 'Default',
+    price: priceInCents,
+    compare_at_price: compareAtPrice,
+    available: true,
+    sku: `SKU-${index + 1}`,
+    requires_shipping: true,
+    taxable: true,
+    inventory_quantity: 100,
+    inventory_management: 'shopify',
+    inventory_policy: 'deny',
+    quantity_rule: {
+      min: 1,
+      max: null,
+      increment: 1,
+    },
+    // Variant-level image (same as product)
+    featured_image: product.imageUrl
+      ? createMockImage(product.imageUrl, product.title)
+      : null,
+  };
+
+  // Create mock media array (required by modern Shopify themes)
+  const media = product.imageUrl
+    ? [
+        {
+          id: index + 1,
+          media_type: 'image',
+          position: 1,
+          src: product.imageUrl,
+          width: 800,
+          height: 800,
+          aspect_ratio: 1,
+          alt: product.title,
+          preview_image: {
+            src: product.imageUrl,
+            width: 800,
+            height: 800,
+            aspect_ratio: 1,
+          },
+        },
+      ]
+    : [];
+
+  // Create featured_media object (used by Dawn card-product.liquid template)
+  // This is the first media item, used for product card images
+  const featuredMedia = product.imageUrl
+    ? {
+        id: index + 1,
+        media_type: 'image',
+        position: 1,
+        src: product.imageUrl,
+        width: 800,
+        height: 800,
+        aspect_ratio: 1,
+        alt: product.title,
+        preview_image: {
+          src: product.imageUrl,
+          width: 800,
+          height: 800,
+          aspect_ratio: 1,
+        },
+      }
+    : null;
 
   return {
     id: index + 1,
@@ -79,24 +151,44 @@ export function editorProductToShopify(product: EditableProduct, index: number):
     price: priceInCents,
     price_min: priceInCents,
     price_max: priceInCents,
-    compare_at_price: undefined,
+    compare_at_price: compareAtPrice,
+    compare_at_price_min: compareAtPrice,
+    compare_at_price_max: compareAtPrice,
     featured_image: product.imageUrl
       ? createMockImage(product.imageUrl, product.title)
-      : createMockImage('', product.title),
+      : null,
+    // featured_media is required by Dawn's card-product.liquid template
+    // It's the first media item and has additional properties for srcset generation
+    featured_media: featuredMedia,
     images: product.imageUrl
       ? [createMockImage(product.imageUrl, product.title)]
       : [],
+    // Media array for modern themes
+    media,
     vendor: product.vendor || 'Store',
     type: 'Product',
     tags: product.tags || [],
     available: true,
     url: `/products/${handle}`,
-    variants: [createMockVariant(1, 'Default', product.price)],
+    variants: [variant],
+    // Selected/first available variant (required by product cards)
+    selected_or_first_available_variant: variant,
+    first_available_variant: variant,
+    // Variant options (empty for single-variant products)
+    has_only_default_variant: true,
+    options: [],
+    options_with_values: [],
+    // Quantity price breaks (B2B feature, usually false)
+    quantity_price_breaks_configured: false,
+    // Price varies (for products with multiple variants at different prices)
+    price_varies: false,
+    compare_at_price_varies: false,
   };
 }
 
 /**
  * Create a mock collection from editor products
+ * Includes all properties required by Shopify Liquid templates
  */
 export function createMockCollection(
   title: string,
@@ -105,14 +197,41 @@ export function createMockCollection(
 ): ShopifyCollection {
   const shopifyProducts = products.map((p, i) => editorProductToShopify(p, i));
 
+  // Extract unique tags, types, and vendors for collection filters
+  const allTags = [...new Set(shopifyProducts.flatMap(p => p.tags || []))];
+  const allTypes = [...new Set(shopifyProducts.map(p => p.type).filter(Boolean))];
+  const allVendors = [...new Set(shopifyProducts.map(p => p.vendor).filter(Boolean))];
+
   return {
     id: 1,
     title,
     handle,
     description: `Browse our ${title.toLowerCase()} collection`,
     image: undefined,
+    featured_image: null,
     products: shopifyProducts,
     products_count: shopifyProducts.length,
+    // Total products (for paginate tags)
+    all_products_count: shopifyProducts.length,
+    // Filter-related properties
+    all_tags: allTags,
+    all_types: allTypes,
+    all_vendors: allVendors,
+    // Sorting options
+    default_sort_by: 'best-selling',
+    sort_by: 'best-selling',
+    sort_options: [
+      { name: 'Featured', value: 'manual' },
+      { name: 'Best selling', value: 'best-selling' },
+      { name: 'Alphabetically, A-Z', value: 'title-ascending' },
+      { name: 'Alphabetically, Z-A', value: 'title-descending' },
+      { name: 'Price, low to high', value: 'price-ascending' },
+      { name: 'Price, high to low', value: 'price-descending' },
+      { name: 'Date, old to new', value: 'created-ascending' },
+      { name: 'Date, new to old', value: 'created-descending' },
+    ],
+    // Filters (empty for preview - would be populated by Shopify)
+    filters: [],
     url: `/collections/${handle}`,
   };
 }
@@ -341,6 +460,8 @@ export function editorStylesToSettings(styles: StyleSettings): ShopifySettings {
     media_shadow_horizontal_offset: 0,
     media_shadow_vertical_offset: 4,
     media_shadow_blur: 5,
+    card_style: 'standard',
+    card_color_scheme: 'scheme-2',
     card_image_padding: 0,
     card_corner_radius: 0,
     card_text_alignment: 'left',
@@ -368,7 +489,10 @@ export function editorStylesToSettings(styles: StyleSettings): ShopifySettings {
     blog_card_shadow_horizontal_offset: 0,
     blog_card_shadow_vertical_offset: 4,
     blog_card_shadow_blur: 5,
+    badge_position: 'bottom-left',
     badge_corner_radius: 4,
+    sold_out_badge_color_scheme: 'scheme-1',
+    sale_badge_color_scheme: 'scheme-1',
     popup_border_thickness: 1,
     popup_border_opacity: 10,
     popup_corner_radius: 0,
@@ -410,8 +534,16 @@ export function editorStylesToSettings(styles: StyleSettings): ShopifySettings {
     variant_pills_shadow_horizontal_offset: 0,
     variant_pills_shadow_vertical_offset: 4,
     variant_pills_shadow_blur: 5,
-    animations_hover_elements: 'none',
-    animations_reveal_on_scroll: false,
+    // Animation settings (enabled for preview to match Shopify import)
+    animations_hover_elements: 'default',
+    animations_reveal_on_scroll: true,
+    // Product card display settings
+    show_secondary_image: false,
+    show_vendor: false,
+    show_rating: false,
+    enable_quick_add: 'none',
+    image_ratio: 'adapt',
+    image_shape: 'default',
     cart_type: 'page',
     predictive_search_enabled: false,
     // Logo settings - null means no custom logo, use text
@@ -694,8 +826,54 @@ export function createPageRenderContext(
     allProducts[product.handle] = product;
   }
 
+  // Create featured collection section context
+  // This links section.settings.collection to the actual collection object
+  const featuredCollectionSection = {
+    id: 'featured-collection',
+    type: 'featured-collection',
+    settings: {
+      title: 'Featured Products',
+      heading_size: 'h2',
+      description: '',
+      show_description: false,
+      description_style: 'body',
+      // Link to the actual collection object (required for {% paginate section.settings.collection.products %})
+      collection: collection,
+      products_to_show: 8,
+      columns_desktop: 4,
+      full_width: false,
+      show_view_all: true,
+      view_all_style: 'solid',
+      enable_desktop_slider: false,
+      color_scheme: 'scheme-1',
+      // Card settings
+      image_ratio: 'adapt',
+      image_shape: 'default',
+      show_secondary_image: false,
+      show_vendor: false,
+      show_rating: false,
+      enable_quick_add: false,
+      // Mobile settings
+      columns_mobile: '2',
+      swipe_on_mobile: false,
+      // Padding
+      padding_top: 36,
+      padding_bottom: 36,
+    },
+    blocks: [],
+    block_order: [],
+  };
+
+  const baseContext = createBaseRenderContext(shopName, settings);
+
+  // Override shop.products_count with actual product count
+  baseContext.shop = {
+    ...baseContext.shop,
+    products_count: collection.products.length,
+  };
+
   return {
-    ...createBaseRenderContext(shopName, settings),
+    ...baseContext,
     content_for_layout: '',
     section: {
       id: 'main',
@@ -714,6 +892,7 @@ export function createPageRenderContext(
     sections: {
       header: createHeaderSectionContext(shopName),
       footer: createFooterSectionContext(shopName),
+      'featured-collection': featuredCollectionSection,
     },
   };
 }

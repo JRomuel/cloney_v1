@@ -13,6 +13,7 @@ import type {
 } from '@/types/editor';
 import type { LiquidSection, SectionBlock, ShopifyProduct } from '../types/theme.types';
 import { createMockCollection, editorProductToShopify } from '../core/MockDataProvider';
+import { generateSectionId } from '../utils/sectionId';
 
 /**
  * Generate a unique block ID
@@ -73,12 +74,15 @@ export function mapHeroToImageBanner(hero: HeroContent): {
 
   return {
     section: {
-      id: 'hero',
+      id: generateSectionId('hero'),
       type: 'image-banner',
       settings: {
         image: hero.backgroundImage || '',
         image_alt: hero.title,
         content_alignment: 'center',
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -115,7 +119,7 @@ export function mapFeaturesToMulticolumn(
 
   return {
     section: {
-      id: section.id,
+      id: generateSectionId(section.id),
       type: 'multicolumn',
       settings: {
         title: section.title,
@@ -123,6 +127,9 @@ export function mapFeaturesToMulticolumn(
         heading_alignment: 'center',
         columns_desktop: Math.min(blocks.length, 4),
         columns_mobile: 1,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -161,7 +168,7 @@ export function mapTestimonialsToMulticolumn(
 
   return {
     section: {
-      id: section.id,
+      id: generateSectionId(section.id),
       type: 'multicolumn',
       settings: {
         title: section.title,
@@ -169,6 +176,9 @@ export function mapTestimonialsToMulticolumn(
         heading_alignment: 'center',
         columns_desktop: Math.min(blocks.length, 3),
         columns_mobile: 1,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -206,7 +216,7 @@ export function mapGalleryToMulticolumn(
 
   return {
     section: {
-      id: section.id,
+      id: generateSectionId(section.id),
       type: 'multicolumn',
       settings: {
         title: section.title,
@@ -214,6 +224,9 @@ export function mapGalleryToMulticolumn(
         heading_alignment: 'center',
         columns_desktop: Math.min(blocks.length, 4),
         columns_mobile: 2,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -266,11 +279,14 @@ export function mapTextToRichText(
 
   return {
     section: {
-      id: section.id,
+      id: generateSectionId(section.id),
       type: 'rich-text',
       settings: {
         content_alignment: 'center',
         full_width: false,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -294,7 +310,7 @@ export function mapProductsToFeaturedCollection(
 
   return {
     section: {
-      id: 'products',
+      id: generateSectionId('products'),
       type: 'featured-collection',
       settings: {
         title,
@@ -302,9 +318,19 @@ export function mapProductsToFeaturedCollection(
         heading_alignment: 'left',
         products_to_show: Math.min(products.length, 8),
         columns_desktop: Math.min(products.length, 4),
+        columns_mobile: 2,
         show_vendor: false,
         show_view_all: products.length > 4,
         view_all_label: 'View all',
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
+        // These settings control the page-width-desktop class in featured-collection.liquid
+        enable_desktop_slider: false,
+        full_width: false,
+        // CRITICAL: The featured-collection.liquid template accesses products via
+        // section.settings.collection.products - this must be the collection object
+        collection: collection,
       },
       blocks: [],
       block_order: [],
@@ -332,11 +358,13 @@ export function mapHeader(
 
   return {
     section: {
-      id: 'header',
+      id: generateSectionId('header'),
       type: 'header',
       settings: {
         logo_text: brandName,
         menu_items: menuItems,
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks: [],
       block_order: [],
@@ -387,9 +415,12 @@ export function mapFooter(
 
   return {
     section: {
-      id: 'footer',
+      id: generateSectionId('footer'),
       type: 'footer',
-      settings: {},
+      settings: {
+        padding_top: 36,
+        padding_bottom: 36,
+      },
       blocks,
       block_order: blockOrder,
     },
@@ -507,12 +538,15 @@ export function mapProductToMainProduct(
 
   return {
     section: {
-      id: 'main-product',
+      id: generateSectionId('main-product'),
       type: 'main-product',
       settings: {
         media_position: layout.imagePosition,
         hide_variants: false,
         enable_sticky_info: true,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -559,12 +593,15 @@ export function mapContactHeroToImageBanner(hero: ContactPageContent['hero']): {
 
   return {
     section: {
-      id: 'contact-hero',
+      id: generateSectionId('contact-hero'),
       type: 'image-banner',
       settings: {
         image: '',
         image_alt: hero.title,
         content_alignment: 'center',
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,
@@ -614,11 +651,14 @@ export function mapContactInfoToRichText(contactInfo: ContactPageContent['contac
 
   return {
     section: {
-      id: 'contact-info',
+      id: generateSectionId('contact-info'),
       type: 'rich-text',
       settings: {
         content_alignment: 'center',
         full_width: false,
+        color_scheme: 'scheme-1',
+        padding_top: 36,
+        padding_bottom: 36,
       },
       blocks,
       block_order: blockOrder,

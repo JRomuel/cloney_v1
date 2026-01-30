@@ -8,6 +8,8 @@ import { generateHomepageJson } from '@/lib/shopify/homepageGenerator';
 import { decrypt } from '@/lib/utils/encryption';
 import { ThemeSettings, GeneratedProduct } from '@/types';
 import { StyleSettings, EditableProduct, HomepageContent } from '@/types/editor';
+import { enforcePaidPlan } from '@/lib/billing/guards';
+import { PlanLimitError } from '@/errors';
 
 // Convert editor styles to theme settings format
 function convertStylesToTheme(
@@ -122,6 +124,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Check billing - require paid plan to import
+    await enforcePaidPlan(shop);
 
     // Update session status to importing
     await prisma.editorSession.update({
@@ -295,6 +300,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error importing to Shopify:', error);
+
+    // Handle billing errors
+    if (error instanceof PlanLimitError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'PLAN_REQUIRED',
+          plan: error.plan,
+        },
+        { status: 402 }
+      );
+    }
 
     // Try to reset session status on error
     if (sessionId) {

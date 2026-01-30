@@ -26,7 +26,6 @@ export function ContactPageTab() {
     contactPage,
     updateContactHero,
     updateContactInfo,
-    addContactPageSection,
     updateContactPageSection,
     removeContactPageSection,
   } = useEditorStore();
@@ -98,7 +97,7 @@ export function ContactPageTab() {
           <Card>
             <BlockStack gap="300" inlineAlign="center">
               <Text as="p" tone="subdued">
-                No additional sections. Add content to the contact page.
+                No additional sections.
               </Text>
             </BlockStack>
           </Card>
@@ -116,18 +115,6 @@ export function ContactPageTab() {
             ))}
           </BlockStack>
         )}
-
-        <InlineStack gap="200">
-          <Button onClick={() => addContactPageSection('features')} variant="secondary">
-            + Features
-          </Button>
-          <Button onClick={() => addContactPageSection('testimonials')} variant="secondary">
-            + Testimonials
-          </Button>
-          <Button onClick={() => addContactPageSection('text')} variant="secondary">
-            + Text
-          </Button>
-        </InlineStack>
       </BlockStack>
     </BlockStack>
   );

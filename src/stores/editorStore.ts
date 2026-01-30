@@ -15,7 +15,6 @@ import {
   defaultStyleSettings,
   defaultProductPageContent,
   defaultContactPageContent,
-  createSection,
 } from '@/types/editor';
 
 export interface EditorState {
@@ -44,7 +43,6 @@ export interface EditorState {
   // Actions - Homepage
   setHomepage: (homepage: HomepageContent) => void;
   updateHero: (hero: Partial<HeroContent>) => void;
-  addSection: (type: Section['type']) => void;
   updateSection: (sectionId: string, updates: Partial<Section>) => void;
   removeSection: (sectionId: string) => void;
   reorderSections: (startIndex: number, endIndex: number) => void;
@@ -64,14 +62,12 @@ export interface EditorState {
   // Actions - Product Page
   selectProductForPage: (productId: string | null) => void;
   updateProductPageLayout: (layout: Partial<ProductPageContent['layout']>) => void;
-  addProductPageSection: (type: Section['type']) => void;
   updateProductPageSection: (sectionId: string, updates: Partial<Section>) => void;
   removeProductPageSection: (sectionId: string) => void;
 
   // Actions - Contact Page
   updateContactHero: (hero: Partial<ContactPageContent['hero']>) => void;
   updateContactInfo: (info: Partial<ContactPageContent['contactInfo']>) => void;
-  addContactPageSection: (type: Section['type']) => void;
   updateContactPageSection: (sectionId: string, updates: Partial<Section>) => void;
   removeContactPageSection: (sectionId: string) => void;
 
@@ -128,15 +124,6 @@ export const useEditorStore = create<EditorState>()(
           homepage: {
             ...state.homepage,
             hero: { ...state.homepage.hero, ...heroUpdates },
-          },
-          isDirty: true,
-        })),
-
-      addSection: (type) =>
-        set((state) => ({
-          homepage: {
-            ...state.homepage,
-            sections: [...state.homepage.sections, createSection(type)],
           },
           isDirty: true,
         })),
@@ -205,8 +192,7 @@ export const useEditorStore = create<EditorState>()(
 
       addProduct: (product) =>
         set((state) => ({
-          // Only allow 1 product - replace instead of append
-          products: [product],
+          products: [...state.products, product],
           productPage: {
             ...state.productPage,
             selectedProductId: product.id,
@@ -255,15 +241,6 @@ export const useEditorStore = create<EditorState>()(
           isDirty: true,
         })),
 
-      addProductPageSection: (type) =>
-        set((state) => ({
-          productPage: {
-            ...state.productPage,
-            sections: [...state.productPage.sections, createSection(type)],
-          },
-          isDirty: true,
-        })),
-
       updateProductPageSection: (sectionId, updates) =>
         set((state) => ({
           productPage: {
@@ -299,15 +276,6 @@ export const useEditorStore = create<EditorState>()(
           contactPage: {
             ...state.contactPage,
             contactInfo: { ...state.contactPage.contactInfo, ...infoUpdates },
-          },
-          isDirty: true,
-        })),
-
-      addContactPageSection: (type) =>
-        set((state) => ({
-          contactPage: {
-            ...state.contactPage,
-            sections: [...state.contactPage.sections, createSection(type)],
           },
           isDirty: true,
         })),
@@ -348,15 +316,14 @@ export const useEditorStore = create<EditorState>()(
 
       // Session Actions
       loadFromGeneration: (data) => {
-        // Only take the first product (limit to 1) and auto-select it
-        const singleProduct = data.products?.[0] ? [data.products[0]] : [];
-        const selectedProductId = singleProduct[0]?.id || null;
+        const loadedProducts = data.products || [];
+        const selectedProductId = loadedProducts[0]?.id || null;
 
         set({
           sessionId: data.sessionId,
           generationId: data.generationId,
           homepage: data.homepage || defaultHomepageContent,
-          products: singleProduct,
+          products: loadedProducts,
           styles: data.styles || defaultStyleSettings,
           selectedThemeId: data.selectedThemeId || 'dawn',
           productPage: {

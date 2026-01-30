@@ -58,6 +58,7 @@ export interface ShopifyShop {
   money_format: string;
   money_with_currency_format: string;
   customer_accounts_enabled?: boolean;
+  products_count?: number;
 }
 
 export interface ShopifyImage {
@@ -65,6 +66,23 @@ export interface ShopifyImage {
   alt: string;
   width?: number;
   height?: number;
+}
+
+export interface ShopifyMedia {
+  id: number;
+  media_type: string;
+  position: number;
+  src: string;
+  width: number;
+  height: number;
+  aspect_ratio: number;
+  alt: string;
+  preview_image?: {
+    src: string;
+    width: number;
+    height: number;
+    aspect_ratio: number;
+  };
 }
 
 export interface ShopifyProduct {
@@ -75,23 +93,57 @@ export interface ShopifyProduct {
   price: number;
   price_min: number;
   price_max: number;
-  compare_at_price?: number;
-  featured_image: ShopifyImage;
+  compare_at_price?: number | null;
+  compare_at_price_min?: number | null;
+  compare_at_price_max?: number | null;
+  featured_image: ShopifyImage | null;
+  // featured_media is used by Dawn's card-product template for product card images
+  featured_media?: ShopifyMedia | null;
   images: ShopifyImage[];
+  media?: ShopifyMedia[];
   vendor: string;
   type: string;
   tags: string[];
   available: boolean;
   url: string;
   variants: ShopifyVariant[];
+  // Selected/available variant references
+  selected_or_first_available_variant?: ShopifyVariant;
+  first_available_variant?: ShopifyVariant;
+  // Variant options
+  has_only_default_variant?: boolean;
+  options?: unknown[];
+  options_with_values?: unknown[];
+  // B2B pricing
+  quantity_price_breaks_configured?: boolean;
+  // Price variation flags (for products with multiple variant prices)
+  price_varies?: boolean;
+  compare_at_price_varies?: boolean;
 }
 
 export interface ShopifyVariant {
   id: number;
   title: string;
   price: number;
+  compare_at_price?: number | null;
   available: boolean;
   sku: string;
+  requires_shipping?: boolean;
+  taxable?: boolean;
+  inventory_quantity?: number;
+  inventory_management?: string;
+  inventory_policy?: string;
+  featured_image?: ShopifyImage | null;
+  quantity_rule?: {
+    min: number;
+    max: number | null;
+    increment: number;
+  };
+}
+
+export interface ShopifyCollectionSortOption {
+  name: string;
+  value: string;
 }
 
 export interface ShopifyCollection {
@@ -100,8 +152,20 @@ export interface ShopifyCollection {
   handle: string;
   description: string;
   image?: ShopifyImage;
+  featured_image?: ShopifyImage | null;
   products: ShopifyProduct[];
   products_count: number;
+  all_products_count?: number;
+  // Filter-related properties
+  all_tags?: string[];
+  all_types?: string[];
+  all_vendors?: string[];
+  // Sorting options
+  default_sort_by?: string;
+  sort_by?: string;
+  sort_options?: ShopifyCollectionSortOption[];
+  // Filters (for Shopify Online Store 2.0)
+  filters?: unknown[];
   url: string;
 }
 

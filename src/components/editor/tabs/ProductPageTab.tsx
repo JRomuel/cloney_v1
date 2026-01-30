@@ -28,7 +28,6 @@ export function ProductPageTab() {
     products,
     productPage,
     updateProductPageLayout,
-    addProductPageSection,
     updateProductPageSection,
     removeProductPageSection,
   } = useEditorStore();
@@ -99,7 +98,7 @@ export function ProductPageTab() {
           <Card>
             <BlockStack gap="300" inlineAlign="center">
               <Text as="p" tone="subdued">
-                No additional sections. Add content below the product.
+                No additional sections.
               </Text>
             </BlockStack>
           </Card>
@@ -117,18 +116,6 @@ export function ProductPageTab() {
             ))}
           </BlockStack>
         )}
-
-        <InlineStack gap="200">
-          <Button onClick={() => addProductPageSection('features')} variant="secondary">
-            + Features
-          </Button>
-          <Button onClick={() => addProductPageSection('testimonials')} variant="secondary">
-            + Testimonials
-          </Button>
-          <Button onClick={() => addProductPageSection('text')} variant="secondary">
-            + Text
-          </Button>
-        </InlineStack>
       </BlockStack>
     </BlockStack>
   );

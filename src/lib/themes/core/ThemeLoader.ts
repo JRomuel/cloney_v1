@@ -6,6 +6,16 @@ interface FileCache {
   [key: string]: string;
 }
 
+export interface TemplateConfig {
+  sections: Record<string, {
+    type: string;
+    settings: Record<string, unknown>;
+    blocks?: Record<string, { type: string; settings: Record<string, unknown> }>;
+    block_order?: string[];
+  }>;
+  order: string[];
+}
+
 export class ThemeLoader {
   private baseUrl: string;
   private fileCache: FileCache = {};
@@ -53,6 +63,20 @@ export class ThemeLoader {
     const content = await response.text();
     this.fileCache[cacheKey] = content;
     return content;
+  }
+
+  /**
+   * Load a template configuration file (e.g., templates/index.json)
+   */
+  async loadTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
+    try {
+      const url = `${this.baseUrl}/templates/${templateName}.json`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
   }
 
   /**

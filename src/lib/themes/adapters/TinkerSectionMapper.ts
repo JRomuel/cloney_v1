@@ -13,6 +13,7 @@ import type {
   TextContent,
 } from '@/types/editor';
 import { createMockCollection } from '../core/MockDataProvider';
+import { generateSectionId } from '../utils/sectionId';
 
 /**
  * Generate a unique block ID
@@ -156,7 +157,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
     }
 
     const section: LiquidSection = {
-      id: 'hero',
+      id: generateSectionId('hero'),
       type: 'hero',
       settings: {
         // Media settings
@@ -377,7 +378,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
     };
 
     const section: LiquidSection = {
-      id: 'products',
+      id: generateSectionId('products'),
       type: 'product-list',
       settings: {
         collection: collection,
@@ -474,7 +475,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
 
     return {
       section: {
-        id: section.id,
+        id: generateSectionId(section.id),
         type: 'section',
         settings: {
           section_width: 'page-width',
@@ -530,7 +531,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
 
     return {
       section: {
-        id: section.id,
+        id: generateSectionId(section.id),
         type: 'section',
         settings: {
           section_width: 'page-width',
@@ -570,7 +571,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
 
     return {
       section: {
-        id: section.id,
+        id: generateSectionId(section.id),
         type: 'section',
         settings: {
           section_width: 'page-width',
@@ -631,7 +632,7 @@ export class TinkerSectionMapper implements ThemeSectionMapper {
 
     return {
       section: {
-        id: section.id,
+        id: generateSectionId(section.id),
         type: 'section',
         settings: {
           section_width: 'page-width',

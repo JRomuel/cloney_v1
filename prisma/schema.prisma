@@ -8,15 +8,23 @@ datasource db {
 }
 
 model Shop {
-  id                 String       @id @default(cuid())
-  domain             String       @unique // e.g., "my-store.myshopify.com"
-  accessToken        String       // Encrypted access token
-  scopes             String       // Comma-separated scopes
-  installedAt        DateTime     @default(now())
-  uninstalledAt      DateTime?    // Set when app is uninstalled
-  plan               String       @default("free")
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  domain               String       @unique // e.g., "my-store.myshopify.com"
+  accessToken          String       // Encrypted access token
+  scopes               String       // Comma-separated scopes
+  installedAt          DateTime     @default(now())
+  uninstalledAt        DateTime?    // Set when app is uninstalled
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  // Billing
+  plan                 String       @default("free") // free, starter, growth
+  billingCycle         String?      // monthly, annual
+  subscriptionId       String?      // Shopify subscription GID
+  subscriptionStatus   String?      // active, cancelled, pending
+  currentPeriodEnd     DateTime?
+  generationsThisMonth Int          @default(0)
+  generationsResetAt   DateTime?
 
   generations        Generation[]
   products           Product[]

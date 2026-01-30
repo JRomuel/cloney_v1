@@ -14,10 +14,21 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useEditorPersistence } from '@/hooks/useEditorPersistence';
 import { GenerationStatus as StatusType } from '@/types';
 
-type ViewState = 'theme-selection' | 'input' | 'generating' | 'editing';
+type ViewState = 'theme-selection' | 'input' | 'generating' | 'editing' | 'loading';
+
+// Check if generationId is in URL params (for SSR-safe initial state)
+function getInitialViewState(): ViewState {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('generationId')) {
+      return 'loading';
+    }
+  }
+  return 'theme-selection';
+}
 
 function GeneratePageContent() {
-  const [viewState, setViewState] = useState<ViewState>('theme-selection');
+  const [viewState, setViewState] = useState<ViewState>(getInitialViewState);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +268,21 @@ function GeneratePageContent() {
           />
         </div>
       </Frame>
+    );
+  }
+
+  // Render loading state while fetching generation
+  if (viewState === 'loading') {
+    return (
+      <Page title="Loading...">
+        <Layout>
+          <Layout.Section>
+            <BlockStack gap="400" inlineAlign="center">
+              <Text as="p">Loading your generation...</Text>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </Page>
     );
   }
 

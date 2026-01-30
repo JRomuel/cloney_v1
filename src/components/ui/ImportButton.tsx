@@ -61,6 +61,11 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
       const data = await response.json();
 
       if (!response.ok) {
+        // Redirect to pricing page if plan is required
+        if (data.code === 'PLAN_REQUIRED') {
+          window.location.href = `/pricing?shop=${encodeURIComponent(shopDomain)}`;
+          return;
+        }
         throw new Error(data.error || 'Import failed');
       }
 

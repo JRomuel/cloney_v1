@@ -8,7 +8,11 @@ import { usePreviewRenderer } from './hooks/usePreviewRenderer';
 import { ThemePreviewFrame } from './ThemePreviewFrame';
 import styles from './ThemePreview.module.css';
 
-export function ThemePreview() {
+interface ThemePreviewProps {
+  testMode?: boolean;
+}
+
+export function ThemePreview({ testMode = false }: ThemePreviewProps) {
   const { homepage, products, styles: themeStyles, previewMode, activePage, productPage, contactPage, selectedThemeId } = useEditorStore();
   const { activeThemeId, setActiveTheme } = useThemeStore();
   const { engine, css, isReady, error: engineError, switchTheme } = useThemeEngine();
@@ -18,7 +22,7 @@ export function ThemePreview() {
     error: renderError,
     triggerRender,
     forceRender,
-  } = usePreviewRenderer(engine);
+  } = usePreviewRenderer(engine, testMode);
 
   // Track previous values for change detection
   const prevHomepageRef = useRef(homepage);

@@ -81,6 +81,7 @@ export const EditableProductSchema = z.object({
   title: z.string(),
   description: z.string(),
   price: z.number(),
+  compareAtPrice: z.number().optional(),
   tags: z.array(z.string()),
   imageUrl: z.string().optional(),
   vendor: z.string().optional(),
@@ -198,36 +199,3 @@ export const defaultContactPageContent: ContactPageContent = {
   },
   sections: [],
 };
-
-// Helper function to create a new section
-export function createSection(type: Section['type']): Section {
-  const id = `section_${Date.now()}`;
-  const base = { id, type, enabled: true };
-
-  switch (type) {
-    case 'features':
-      return {
-        ...base,
-        title: 'Features',
-        content: { items: [] } as FeaturesContent,
-      };
-    case 'testimonials':
-      return {
-        ...base,
-        title: 'Testimonials',
-        content: { items: [] } as TestimonialsContent,
-      };
-    case 'gallery':
-      return {
-        ...base,
-        title: 'Gallery',
-        content: { items: [] } as GalleryContent,
-      };
-    case 'text':
-      return {
-        ...base,
-        title: 'About Us',
-        content: { body: '' } as TextContent,
-      };
-  }
-}
