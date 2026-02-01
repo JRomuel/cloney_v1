@@ -83,6 +83,7 @@ export async function runGenerationPipeline(
     });
 
     console.log(`[Pipeline] Scraping complete. Found ${scrapedData.colors.length} colors, ${scrapedData.products.length} products`);
+    console.log(`[Pipeline] Scraped products:`, JSON.stringify(scrapedData.products, null, 2));
 
     // Step 2: Generate theme settings with AI
     console.log(`[Pipeline] Generating theme settings with AI...`);
@@ -105,13 +106,17 @@ export async function runGenerationPipeline(
     await updateGenerationStatus(generationId, 'analyzing', 50);
 
     const productPrompt = buildProductPrompt(scrapedData);
+    console.log(`[Pipeline] Product prompt:`, productPrompt.substring(0, 500));
+
     const productResponse = await createCompletion({
       prompt: productPrompt,
       systemPrompt: PRODUCT_GENERATION_SYSTEM_PROMPT,
       responseFormat: 'json',
     });
 
+    console.log(`[Pipeline] AI product response (full):`, productResponse);
     products = parseProductsResponse(productResponse);
+    console.log(`[Pipeline] Parsed products:`, products.length);
 
     await updateGenerationStatus(generationId, 'analyzing', 60, {
       aiResponse: JSON.stringify({ theme: themeSettings, products }),
@@ -120,8 +125,9 @@ export async function runGenerationPipeline(
     console.log(`[Pipeline] Generated ${products.length} products`);
 
     // Validate AI response
-    if (!validateAIResponse(themeSettings, products)) {
-      throw new AIGenerationError('AI response validation failed');
+    const validationError = validateAIResponse(themeSettings, products);
+    if (validationError) {
+      throw new AIGenerationError(validationError);
     }
 
     // Step 4: Mark as complete - Editor will handle Shopify import

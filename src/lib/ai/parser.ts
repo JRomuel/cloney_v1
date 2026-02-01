@@ -16,15 +16,15 @@ const RelaxedThemeSettingsSchema = z.object({
     bodyFont: z.string(),
   }),
   layout: z.object({
-    headerStyle: z.string().transform((val) => {
+    headerStyle: z.string().optional().default('logo_left').transform((val) => {
       const valid = ['logo_center', 'logo_left', 'menu_center'];
       return valid.includes(val) ? val : 'logo_left';
     }),
-    footerStyle: z.string().transform((val) => {
+    footerStyle: z.string().optional().default('minimal').transform((val) => {
       const valid = ['minimal', 'detailed', 'links_only'];
       return valid.includes(val) ? val : 'minimal';
     }),
-  }),
+  }).optional().default({ headerStyle: 'logo_left', footerStyle: 'minimal' }),
   brandName: z.string(),
   tagline: z.string().optional(),
 });
@@ -85,20 +85,38 @@ export function parseThemeResponse(response: string): ThemeSettings {
 
 export function parseProductsResponse(response: string): GeneratedProduct[] {
   try {
+    console.log('[Parser] Parsing products response, length:', response.length);
+
     // Try to extract JSON from the response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('[Parser] No JSON found in response:', response.substring(0, 500));
       throw new AIGenerationError('No JSON found in products response');
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+    console.log('[Parser] Parsed JSON keys:', Object.keys(parsed));
 
-    // Handle both { products: [...] } and direct array
-    const productsArray = Array.isArray(parsed) ? parsed : parsed.products;
+    // Handle multiple possible response formats
+    let productsArray = parsed.products || parsed.product || parsed.items || parsed.data;
+
+    // If still not found, check if the parsed object itself is an array
+    if (!productsArray && Array.isArray(parsed)) {
+      productsArray = parsed;
+    }
+
+    // If parsed.product is a single object, wrap it in an array
+    if (productsArray && !Array.isArray(productsArray) && typeof productsArray === 'object') {
+      productsArray = [productsArray];
+    }
 
     if (!Array.isArray(productsArray)) {
-      throw new AIGenerationError('Products must be an array');
+      console.error('[Parser] Products not found in response. Keys:', Object.keys(parsed));
+      // Return empty array instead of throwing - let caller handle it
+      return [];
     }
+
+    console.log('[Parser] Found', productsArray.length, 'products to validate');
 
     const validatedProducts: GeneratedProduct[] = [];
 
@@ -120,10 +138,7 @@ export function parseProductsResponse(response: string): GeneratedProduct[] {
       }
     }
 
-    if (validatedProducts.length === 0) {
-      throw new AIGenerationError('No valid products in response');
-    }
-
+    // Allow empty products array - caller decides if this is an error
     return validatedProducts;
   } catch (error) {
     if (error instanceof AIGenerationError) {
@@ -178,28 +193,28 @@ function normalizeColor(color: string): string {
   return colorNames[color.toLowerCase()] || '#000000';
 }
 
-export function validateAIResponse(theme: ThemeSettings, products: GeneratedProduct[]): boolean {
+export function validateAIResponse(theme: ThemeSettings, products: GeneratedProduct[]): string | null {
   // Theme must have all colors
   if (!theme.colors.primary || !theme.colors.secondary || !theme.colors.background) {
-    return false;
+    return 'Missing required theme colors';
   }
 
   // Theme must have fonts
   if (!theme.typography.headingFont || !theme.typography.bodyFont) {
-    return false;
+    return 'Missing required theme fonts';
   }
 
   // Must have at least one product
   if (products.length === 0) {
-    return false;
+    return 'No products found on this page. Please enter a product page URL.';
   }
 
   // All products must have title and price
   for (const product of products) {
     if (!product.title || product.price <= 0) {
-      return false;
+      return 'Invalid product data: missing title or price';
     }
   }
 
-  return true;
+  return null; // null means valid
 }
