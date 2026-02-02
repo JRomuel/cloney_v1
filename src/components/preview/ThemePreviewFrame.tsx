@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import type { PreviewMode, StyleSettings } from '@/types/editor';
+import { useEditorStore } from '@/stores/editorStore';
+import { sendHighlightMessage, HIGHLIGHT_SCRIPT } from '@/lib/preview/highlightManager';
 import styles from './ThemePreviewFrame.module.css';
 
 interface ThemePreviewFrameProps {
@@ -28,6 +30,10 @@ export function ThemePreviewFrame({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const prevBlobUrlRef = useRef<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Subscribe to focus target for highlighting
+  const focusTarget = useEditorStore((state) => state.focusTarget);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -103,7 +109,7 @@ export function ThemePreviewFrame({
         --product-card-border-width: 0;
         --product-card-border-opacity: 0;
         --product-card-shadow-opacity: 0;
-        --product-card-image-padding: 0;
+        --product-card-image-padding: 0.0rem;
         --product-card-text-alignment: left;
 
         /* Media styles */
@@ -167,12 +173,13 @@ export function ThemePreviewFrame({
   </script>`);
       }
 
-      // Inject custom CSS variables before </head>
+      // Inject custom CSS variables and highlight script before </head>
       const customStyles = `
   <style id="preview-custom-styles">
     ${cssVariables}
     ${css}
   </style>
+  ${HIGHLIGHT_SCRIPT}
 `;
       if (doc.includes('</head>')) {
         doc = doc.replace('</head>', `${customStyles}</head>`);
@@ -211,6 +218,7 @@ export function ThemePreviewFrame({
 
     ${css}
   </style>
+  ${HIGHLIGHT_SCRIPT}
 </head>
 <body>
   ${html || '<div style="padding: 40px; text-align: center;"><h2>Preview Loading...</h2><p>Content will appear here once rendered.</p></div>'}
@@ -260,6 +268,16 @@ export function ThemePreviewFrame({
     };
   }, [documentHtml, html, isMounted]);
 
+  // Send highlight messages when focus target changes
+  useEffect(() => {
+    // Small delay to ensure iframe has loaded content
+    const timeout = setTimeout(() => {
+      sendHighlightMessage(iframeRef.current, focusTarget);
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [focusTarget]);
+
   const frameClass = mode === 'mobile' ? styles.mobile : styles.desktop;
 
   return (
@@ -271,6 +289,7 @@ export function ThemePreviewFrame({
       )}
       {blobUrl ? (
         <iframe
+          ref={iframeRef}
           src={blobUrl}
           className={styles.iframe}
           title="Theme Preview"

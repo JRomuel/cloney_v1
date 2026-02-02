@@ -19,15 +19,20 @@ function convertThemeToStyles(theme: ThemeSettings): StyleSettings {
 
 // Convert AI-generated products to editable products
 function convertProducts(products: GeneratedProduct[]): EditableProduct[] {
-  return products.map((p, index) => ({
-    id: `product_${index}_${Date.now()}`,
-    title: p.title,
-    description: p.description,
-    price: p.price,
-    tags: p.tags,
-    imageUrl: p.imageUrl,
-    vendor: p.vendor,
-  }));
+  return products.map((p, index) => {
+    // Ensure imageUrl is set - use first from imageUrls if not provided
+    const imageUrl = p.imageUrl || (p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls[0] : undefined);
+    return {
+      id: `product_${index}_${Date.now()}`,
+      title: p.title,
+      description: p.description,
+      price: p.price,
+      tags: p.tags,
+      imageUrl,
+      imageUrls: p.imageUrls,
+      vendor: p.vendor,
+    };
+  });
 }
 
 // Build homepage content from scraped data and theme settings
@@ -53,6 +58,7 @@ function buildHomepageContent(
     sections: [],
   };
 }
+
 
 // POST - Create a new editor session from a generation
 export async function POST(request: NextRequest) {

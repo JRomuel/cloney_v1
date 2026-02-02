@@ -62,6 +62,7 @@ model EditorSession {
   homepageContent    String?      // JSON: HomepageContent
   productsContent    String?      // JSON: EditableProduct[]
   stylesContent      String?      // JSON: StyleSettings
+  mediasContent      String?      // JSON: MediaItem[]
   selectedThemeId    String       @default("dawn") // Theme template ID (dawn, tinker, etc.)
 
   status             String       @default("editing") // editing, importing, imported

@@ -27,17 +27,23 @@ export interface ShopifyIndexJson {
 
 /**
  * Generate Shopify templates/index.json from editor homepage content
+ *
+ * @param homepage - The homepage content from the editor
+ * @param collectionHandle - Optional collection handle for featured products section
+ * @param productsSectionTitle - Optional title for the products section
+ * @param heroImageUrl - Optional Shopify-hosted image URL for the hero background
  */
 export function generateHomepageJson(
   homepage: HomepageContent,
   collectionHandle?: string,
-  productsSectionTitle?: string
+  productsSectionTitle?: string,
+  heroImageUrl?: string
 ): ShopifyIndexJson {
   const sections: Record<string, ShopifySection> = {};
   const order: string[] = [];
 
   // 1. Hero section (image-banner)
-  sections['hero'] = convertHeroToImageBanner(homepage.hero);
+  sections['hero'] = convertHeroToImageBanner(homepage.hero, heroImageUrl);
   order.push('hero');
 
   // 2. Content sections (features, testimonials, gallery, text)
@@ -63,8 +69,14 @@ export function generateHomepageJson(
 
 /**
  * Convert Hero content to Shopify image-banner section
+ *
+ * @param hero - Hero content from the editor
+ * @param shopifyImageUrl - Optional Shopify-hosted image URL for the background
  */
-function convertHeroToImageBanner(hero: HomepageContent['hero']): ShopifySection {
+function convertHeroToImageBanner(
+  hero: HomepageContent['hero'],
+  shopifyImageUrl?: string
+): ShopifySection {
   const blocks: Record<string, ShopifyBlock> = {};
   const blockOrder: string[] = [];
 
@@ -106,22 +118,30 @@ function convertHeroToImageBanner(hero: HomepageContent['hero']): ShopifySection
     blockOrder.push('buttons');
   }
 
+  // Build settings object, conditionally including image if provided
+  const settings: Record<string, unknown> = {
+    image_overlay_opacity: 40,
+    image_height: 'large',
+    desktop_content_position: 'middle-center',
+    show_text_box: false,
+    desktop_content_alignment: 'center',
+    color_scheme: 'scheme-1',
+    image_behavior: 'none',
+    mobile_content_alignment: 'center',
+    stack_images_on_mobile: true,
+    show_text_below: true,
+    padding_top: 36,
+    padding_bottom: 36,
+  };
+
+  // Add image if a Shopify-hosted URL is provided
+  if (shopifyImageUrl) {
+    settings.image = shopifyImageUrl;
+  }
+
   return {
     type: 'image-banner',
-    settings: {
-      // NOTE: Cannot use external URLs for images - Shopify requires uploaded assets
-      // Users can add images via Shopify theme editor after import
-      image_overlay_opacity: 40,
-      image_height: 'large',
-      desktop_content_position: 'middle-center',
-      show_text_box: false,
-      desktop_content_alignment: 'center',
-      color_scheme: 'scheme-1',
-      image_behavior: 'none',
-      mobile_content_alignment: 'center',
-      stack_images_on_mobile: true,
-      show_text_below: true,
-    },
+    settings,
     blocks,
     block_order: blockOrder,
   };
@@ -181,6 +201,8 @@ function convertFeaturesToMulticolumn(title: string, content: FeaturesContent): 
       color_scheme: 'scheme-1',
       columns_mobile: '1',
       swipe_on_mobile: false,
+      padding_top: 36,
+      padding_bottom: 36,
     },
     blocks,
     block_order: blockOrder,
@@ -230,6 +252,8 @@ function convertTestimonialsToMulticolumn(title: string, content: TestimonialsCo
       color_scheme: 'scheme-1',
       columns_mobile: '1',
       swipe_on_mobile: true,
+      padding_top: 36,
+      padding_bottom: 36,
     },
     blocks,
     block_order: blockOrder,
@@ -275,6 +299,8 @@ function convertGalleryToMulticolumn(title: string, content: GalleryContent): Sh
       color_scheme: 'scheme-1',
       columns_mobile: '2',
       swipe_on_mobile: false,
+      padding_top: 36,
+      padding_bottom: 36,
     },
     blocks,
     block_order: blockOrder,
@@ -315,6 +341,8 @@ function convertTextToRichText(title: string, content: TextContent): ShopifySect
       content_alignment: 'center',
       color_scheme: 'scheme-1',
       full_width: true,
+      padding_top: 36,
+      padding_bottom: 36,
     },
     blocks,
     block_order: blockOrder,
@@ -352,6 +380,8 @@ function convertProductsToFeaturedCollection(
       enable_quick_add: false,
       columns_mobile: '2',
       swipe_on_mobile: false,
+      padding_top: 36,
+      padding_bottom: 36,
     },
   };
 }

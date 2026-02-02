@@ -10,11 +10,11 @@ import {
   Badge,
   Collapsible,
   FormLayout,
-  Icon,
 } from '@shopify/polaris';
 import { ChevronDownIcon, ChevronUpIcon, DeleteIcon } from '@shopify/polaris-icons';
 import { useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
+import { FocusableTextField } from '../common/FocusableTextField';
 import {
   Section,
   FeaturesContent,
@@ -107,32 +107,37 @@ export function SectionEditor({ section, index }: SectionEditorProps) {
 
         <Collapsible open={isOpen} id={`section-${section.id}`}>
           <FormLayout>
-            <TextField
+            <FocusableTextField
               label="Section Title"
               value={section.title}
               onChange={(value) => updateSection(section.id, { title: value })}
               autoComplete="off"
+              focusTarget={{ type: 'section', field: 'title', itemId: section.id }}
             />
             {section.type === 'features' && (
               <FeaturesEditor
+                sectionId={section.id}
                 content={section.content as FeaturesContent}
                 onUpdate={(content) => updateSection(section.id, { content })}
               />
             )}
             {section.type === 'testimonials' && (
               <TestimonialsEditor
+                sectionId={section.id}
                 content={section.content as TestimonialsContent}
                 onUpdate={(content) => updateSection(section.id, { content })}
               />
             )}
             {section.type === 'gallery' && (
               <GalleryEditor
+                sectionId={section.id}
                 content={section.content as GalleryContent}
                 onUpdate={(content) => updateSection(section.id, { content })}
               />
             )}
             {section.type === 'text' && (
               <TextEditor
+                sectionId={section.id}
                 content={section.content as TextContent}
                 onUpdate={(content) => updateSection(section.id, { content })}
               />
@@ -146,9 +151,11 @@ export function SectionEditor({ section, index }: SectionEditorProps) {
 
 // Features Editor
 function FeaturesEditor({
+  sectionId,
   content,
   onUpdate,
 }: {
+  sectionId: string;
   content: FeaturesContent;
   onUpdate: (content: FeaturesContent) => void;
 }) {
@@ -197,18 +204,20 @@ function FeaturesEditor({
                 Remove
               </Button>
             </InlineStack>
-            <TextField
+            <FocusableTextField
               label="Title"
               value={item.title}
               onChange={(value) => updateItem(item.id, { title: value })}
               autoComplete="off"
+              focusTarget={{ type: 'section', field: 'title', itemId: sectionId, subItemId: item.id }}
             />
-            <TextField
+            <FocusableTextField
               label="Description"
               value={item.description}
               onChange={(value) => updateItem(item.id, { description: value })}
               multiline={2}
               autoComplete="off"
+              focusTarget={{ type: 'section', field: 'description', itemId: sectionId, subItemId: item.id }}
             />
           </BlockStack>
         </Card>
@@ -222,9 +231,11 @@ function FeaturesEditor({
 
 // Testimonials Editor
 function TestimonialsEditor({
+  sectionId,
   content,
   onUpdate,
 }: {
+  sectionId: string;
   content: TestimonialsContent;
   onUpdate: (content: TestimonialsContent) => void;
 }) {
@@ -273,18 +284,20 @@ function TestimonialsEditor({
                 Remove
               </Button>
             </InlineStack>
-            <TextField
+            <FocusableTextField
               label="Quote"
               value={item.quote}
               onChange={(value) => updateItem(item.id, { quote: value })}
               multiline={3}
               autoComplete="off"
+              focusTarget={{ type: 'section', field: 'quote', itemId: sectionId, subItemId: item.id }}
             />
-            <TextField
+            <FocusableTextField
               label="Author"
               value={item.author}
               onChange={(value) => updateItem(item.id, { author: value })}
               autoComplete="off"
+              focusTarget={{ type: 'section', field: 'author', itemId: sectionId, subItemId: item.id }}
             />
             <TextField
               label="Role (optional)"
@@ -304,9 +317,11 @@ function TestimonialsEditor({
 
 // Gallery Editor
 function GalleryEditor({
+  sectionId,
   content,
   onUpdate,
 }: {
+  sectionId: string;
   content: GalleryContent;
   onUpdate: (content: GalleryContent) => void;
 }) {
@@ -386,20 +401,23 @@ function GalleryEditor({
 
 // Text Editor
 function TextEditor({
+  sectionId,
   content,
   onUpdate,
 }: {
+  sectionId: string;
   content: TextContent;
   onUpdate: (content: TextContent) => void;
 }) {
   return (
-    <TextField
+    <FocusableTextField
       label="Content"
       value={content.body}
       onChange={(value) => onUpdate({ body: value })}
       multiline={6}
       autoComplete="off"
       helpText="Enter your text content here. Supports basic formatting."
+      focusTarget={{ type: 'section', field: 'body', itemId: sectionId }}
     />
   );
 }

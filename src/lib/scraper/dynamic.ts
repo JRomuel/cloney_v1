@@ -189,7 +189,137 @@ export async function scrapeDynamic(url: string): Promise<ScrapedData> {
           });
         });
 
-        return images.slice(0, 20);
+        return images.slice(0, 30);
+      };
+
+      const extractSingleProduct = (): {
+        name: string;
+        description?: string;
+        price?: string;
+        imageUrl?: string;
+        imageUrls?: string[];
+      } | null => {
+        // Try to find product title from various common selectors
+        const titleSelectors = [
+          '.product__title',
+          '.product-title',
+          '.product-single__title',
+          '.product-info__title',
+          '[data-product-title]',
+          'h1.title',
+          '.product h1',
+          'h1',
+        ];
+
+        let name = '';
+        for (const selector of titleSelectors) {
+          const el = document.querySelector(selector);
+          const rawText = el?.textContent?.trim() || '';
+          // Normalize whitespace and take first segment before separators
+          const text = rawText.replace(/\s+/g, ' ').trim();
+          const cleanText = text.split(/[|\-–—]/).shift()?.trim() || text;
+
+          if (cleanText && cleanText.length > 2 && cleanText.length < 200) {
+            name = cleanText;
+            break;
+          }
+        }
+
+        if (!name) return null;
+
+        // Extract price
+        const priceSelectors = [
+          '.product__price',
+          '.product-price',
+          '.price',
+          '.product-single__price',
+          '[data-product-price]',
+          '.money',
+          '[class*="price"]',
+        ];
+
+        let price: string | undefined;
+        for (const selector of priceSelectors) {
+          const priceText = document.querySelector(selector)?.textContent?.trim();
+          const priceMatch = priceText?.match(/[\d,.]+/);
+          if (priceMatch) {
+            price = priceMatch[0];
+            break;
+          }
+        }
+
+        // Extract description
+        const descSelectors = [
+          '.product__description',
+          '.product-description',
+          '.product-single__description',
+          '.product-info__description',
+          '[data-product-description]',
+          '.rte',
+          '.product-details',
+        ];
+
+        let description: string | undefined;
+        for (const selector of descSelectors) {
+          const text = document.querySelector(selector)?.textContent?.trim();
+          if (text && text.length > 10) {
+            description = text.substring(0, 500);
+            break;
+          }
+        }
+
+        // Extract product images
+        const imageUrls: string[] = [];
+        const seenUrls = new Set<string>();
+
+        const imageSelectors = [
+          '.product__media img',
+          '.product-gallery img',
+          '.product-single__photo img',
+          '.product-images img',
+          '[data-product-media] img',
+          '.product-photo-container img',
+          '.product__image img',
+          '.product-featured-img',
+        ];
+
+        for (const selector of imageSelectors) {
+          document.querySelectorAll(selector).forEach((imgEl) => {
+            if (imageUrls.length >= 6) return;
+
+            const img = imgEl as HTMLImageElement;
+            const imgSrc = img.src || img.dataset.src || img.dataset.lazySrc;
+            if (!imgSrc || seenUrls.has(imgSrc)) return;
+            seenUrls.add(imgSrc);
+            imageUrls.push(imgSrc);
+          });
+
+          if (imageUrls.length > 0) break;
+        }
+
+        // Fallback: try main content images
+        if (imageUrls.length === 0) {
+          document.querySelectorAll('main img, .product img, [role="main"] img').forEach((imgEl) => {
+            if (imageUrls.length >= 6) return;
+
+            const img = imgEl as HTMLImageElement;
+            const imgSrc = img.src || img.dataset.src;
+            if (!imgSrc || seenUrls.has(imgSrc)) return;
+            if (img.width > 0 && img.width < 100) return;
+            if (img.height > 0 && img.height < 100) return;
+
+            seenUrls.add(imgSrc);
+            imageUrls.push(imgSrc);
+          });
+        }
+
+        return {
+          name,
+          description,
+          price,
+          imageUrl: imageUrls[0],
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        };
       };
 
       const extractProducts = (): Array<{
@@ -197,13 +327,26 @@ export async function scrapeDynamic(url: string): Promise<ScrapedData> {
         description?: string;
         price?: string;
         imageUrl?: string;
+        imageUrls?: string[];
       }> => {
         const products: Array<{
           name: string;
           description?: string;
           price?: string;
           imageUrl?: string;
+          imageUrls?: string[];
         }> = [];
+
+        // Check if this is a single product page
+        const isSingleProductPage = /\/products?\/[^/]+/.test(window.location.pathname);
+
+        if (isSingleProductPage) {
+          const singleProduct = extractSingleProduct();
+          if (singleProduct) {
+            products.push(singleProduct);
+            return products;
+          }
+        }
 
         const productSelectors = [
           '.product',
@@ -226,14 +369,33 @@ export async function scrapeDynamic(url: string): Promise<ScrapedData> {
           const descEl = el.querySelector('.description, .product-description, p');
           const description = descEl?.textContent?.trim().substring(0, 200);
 
-          const imgEl = el.querySelector('img') as HTMLImageElement | null;
-          const imageUrl = imgEl?.src || imgEl?.dataset.src;
+          // Extract up to 6 images per product
+          const imageUrls: string[] = [];
+          const seenUrls = new Set<string>();
+
+          el.querySelectorAll('img').forEach((imgEl) => {
+            if (imageUrls.length >= 6) return;
+
+            const img = imgEl as HTMLImageElement;
+            const imgSrc = img.src || img.dataset.src || img.dataset.lazySrc;
+            if (!imgSrc || seenUrls.has(imgSrc)) return;
+            seenUrls.add(imgSrc);
+
+            // Skip tiny images
+            if (img.width > 0 && img.width < 50) return;
+            if (img.height > 0 && img.height < 50) return;
+
+            imageUrls.push(imgSrc);
+          });
+
+          const imageUrl = imageUrls[0];
 
           products.push({
             name,
             description: description || undefined,
             price: price || undefined,
             imageUrl: imageUrl || undefined,
+            imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
           });
         });
 

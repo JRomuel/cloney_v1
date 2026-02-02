@@ -36,7 +36,7 @@ function GeneratePageContent() {
   const { showToast, setLoading } = useAppBridge();
 
   const { loadFromGeneration, reset: resetEditor, sessionId, selectedThemeId } = useEditorStore();
-  const { isSaving, isDirty } = useEditorPersistence();
+  const { isSaving, isDirty, isReadOnly } = useEditorPersistence();
 
   // Load a generation by ID into the editor
   const loadGeneration = useCallback(
@@ -66,6 +66,7 @@ function GeneratePageContent() {
           products: sessionData.products,
           styles: sessionData.styles,
           selectedThemeId: sessionData.selectedThemeId,
+          status: sessionData.status,
         });
 
         setGenerationId(genId);
@@ -168,6 +169,7 @@ function GeneratePageContent() {
         products: data.products,
         styles: data.styles,
         selectedThemeId: data.selectedThemeId,
+        status: data.status,
       });
 
       setViewState('editing');
@@ -216,11 +218,81 @@ function GeneratePageContent() {
     [showToast]
   );
 
+  // Clone an imported session to continue editing
+  const handleContinueEditing = useCallback(async () => {
+    if (!sessionId) return;
+
+    setIsLoading(true);
+    setLoading(true);
+
+    try {
+      const response = await fetch(`/api/editor/session/${sessionId}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new version');
+      }
+
+      const newSession = await response.json();
+
+      loadFromGeneration({
+        sessionId: newSession.id,
+        generationId: newSession.generationId,
+        homepage: newSession.homepage,
+        products: newSession.products,
+        styles: newSession.styles,
+        selectedThemeId: newSession.selectedThemeId,
+        status: newSession.status,
+      });
+
+      showToast('Editing unlocked! You can now make changes.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to unlock editing';
+      showToast(message, true);
+    } finally {
+      setIsLoading(false);
+      setLoading(false);
+    }
+  }, [sessionId, loadFromGeneration, showToast, setLoading]);
+
   // Render the editor view
   if (viewState === 'editing' && shop) {
     return (
       <Frame>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          {isReadOnly && (
+            <div
+              style={{
+                padding: '12px 20px',
+                backgroundColor: 'var(--p-color-bg-surface-warning)',
+                borderBottom: '1px solid var(--p-color-border-warning)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text as="p" tone="caution">
+                This session has been imported. Unlock editing to make changes and re-import.
+              </Text>
+              <button
+                onClick={handleContinueEditing}
+                disabled={isLoading}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--p-color-bg-fill-warning)',
+                  color: 'var(--p-color-text)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                {isLoading ? 'Unlocking...' : 'Unlock Editing'}
+              </button>
+            </div>
+          )}
           <div
             style={{
               padding: '12px 20px',
@@ -233,21 +305,27 @@ function GeneratePageContent() {
           >
             <BlockStack gap="100">
               <Text as="h1" variant="headingMd">
-                Edit Your Store
+                {isReadOnly ? 'View Your Store (Read-Only)' : 'Edit Your Store'}
               </Text>
               <Text as="p" tone="subdued">
-                Make changes and preview before importing to Shopify
+                {isReadOnly
+                  ? 'This session has been imported to Shopify'
+                  : 'Make changes and preview before importing to Shopify'}
               </Text>
             </BlockStack>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <Text as="span" tone="subdued" variant="bodySm">
-                {isDirty ? 'Unsaved changes' : isSaving ? 'Saving...' : 'Saved'}
-              </Text>
-              <ImportButton
-                shopDomain={shop}
-                onSuccess={handleImportSuccess}
-                onError={handleImportError}
-              />
+              {!isReadOnly && (
+                <>
+                  <Text as="span" tone="subdued" variant="bodySm">
+                    {isDirty ? 'Unsaved changes' : isSaving ? 'Saving...' : 'Saved'}
+                  </Text>
+                  <ImportButton
+                    shopDomain={shop}
+                    onSuccess={handleImportSuccess}
+                    onError={handleImportError}
+                  />
+                </>
+              )}
               <button
                 onClick={handleNewGeneration}
                 style={{

@@ -272,7 +272,7 @@ export default function ExternalPreviewPage() {
         --product-card-border-width: 0;
         --product-card-border-opacity: 0;
         --product-card-shadow-opacity: 0;
-        --product-card-image-padding: 0;
+        --product-card-image-padding: 0.0rem;
         --product-card-text-alignment: left;
         --media-radius: 0;
         --media-border-width: 0;

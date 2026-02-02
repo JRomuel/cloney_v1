@@ -1,7 +1,8 @@
 'use client';
 
-import { Card, BlockStack, TextField, Text, FormLayout } from '@shopify/polaris';
+import { Card, BlockStack, Text, FormLayout } from '@shopify/polaris';
 import { useEditorStore } from '@/stores/editorStore';
+import { FocusableTextField } from '../common/FocusableTextField';
 
 export function HeroEditor() {
   const { homepage, updateHero } = useEditorStore();
@@ -14,39 +15,44 @@ export function HeroEditor() {
           Hero Section
         </Text>
         <FormLayout>
-          <TextField
+          <FocusableTextField
             label="Title"
             value={hero.title}
             onChange={(value) => updateHero({ title: value })}
             autoComplete="off"
+            focusTarget={{ type: 'hero', field: 'title' }}
           />
-          <TextField
+          <FocusableTextField
             label="Subtitle"
             value={hero.subtitle}
             onChange={(value) => updateHero({ subtitle: value })}
             multiline={2}
             autoComplete="off"
+            focusTarget={{ type: 'hero', field: 'subtitle' }}
           />
-          <TextField
+          <FocusableTextField
             label="Button Text"
             value={hero.ctaText}
             onChange={(value) => updateHero({ ctaText: value })}
             autoComplete="off"
+            focusTarget={{ type: 'hero', field: 'ctaText' }}
           />
-          <TextField
+          <FocusableTextField
             label="Button URL"
             value={hero.ctaUrl}
             onChange={(value) => updateHero({ ctaUrl: value })}
             type="url"
             autoComplete="off"
+            focusTarget={{ type: 'hero', field: 'ctaUrl' }}
           />
-          <TextField
+          <FocusableTextField
             label="Background Image URL"
             value={hero.backgroundImage || ''}
             onChange={(value) => updateHero({ backgroundImage: value || undefined })}
             type="url"
             autoComplete="off"
             helpText="Optional. Leave empty for solid color background."
+            focusTarget={{ type: 'hero', field: 'backgroundImage' }}
           />
         </FormLayout>
       </BlockStack>

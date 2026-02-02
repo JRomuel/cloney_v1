@@ -6,6 +6,7 @@ import { TabNavigation } from './tabs/TabNavigation';
 import { HomepageTab } from './tabs/HomepageTab';
 import { ProductsTab } from './tabs/ProductsTab';
 import { StylesTab } from './tabs/StylesTab';
+import { MediasTab } from './tabs/MediasTab';
 import { ProductPageTab } from './tabs/ProductPageTab';
 import { ContactPageTab } from './tabs/ContactPageTab';
 import styles from './LeftPanel.module.css';
@@ -42,6 +43,7 @@ export function LeftPanel({ isSaving, isDirty }: LeftPanelProps) {
               {activeTab === 'homepage' && <HomepageTab />}
               {activeTab === 'products' && <ProductsTab />}
               {activeTab === 'styles' && <StylesTab />}
+              {activeTab === 'medias' && <MediasTab />}
             </div>
           </>
         )}

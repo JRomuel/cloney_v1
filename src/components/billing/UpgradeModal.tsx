@@ -13,13 +13,16 @@ import { BillingCycleToggle } from './BillingCycleToggle';
 import { BillingCycle, PlanId } from '@/types/billing';
 import { PLANS, getPlanPrice, getAnnualSavingsPercent } from '@/lib/billing/constants';
 
+type UpgradeContext = 'generation-limit' | 'import-required';
+
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
   currentPlan: PlanId;
-  usedGenerations: number;
-  maxGenerations: number;
+  usedGenerations?: number;
+  maxGenerations?: number;
   shopDomain: string;
+  context?: UpgradeContext;
 }
 
 export function UpgradeModal({
@@ -29,6 +32,7 @@ export function UpgradeModal({
   usedGenerations,
   maxGenerations,
   shopDomain,
+  context = 'generation-limit',
 }: UpgradeModalProps) {
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(
@@ -67,13 +71,18 @@ export function UpgradeModal({
   const price = getPlanPrice(selectedPlan, cycle);
   const savings = getAnnualSavingsPercent(selectedPlan);
 
+  const isImportContext = context === 'import-required';
+
+  const modalTitle = isImportContext ? 'Unlock Your Store' : 'Upgrade Your Plan';
+  const ctaText = isImportContext ? 'Upgrade & Import' : `Upgrade to ${plan.name}`;
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Upgrade Your Plan"
+      title={modalTitle}
       primaryAction={{
-        content: `Upgrade to ${plan.name}`,
+        content: ctaText,
         onAction: handleUpgrade,
         loading,
       }}
@@ -86,12 +95,25 @@ export function UpgradeModal({
     >
       <Modal.Section>
         <BlockStack gap="400">
-          <Banner tone="warning">
-            <Text as="p">
-              You&apos;ve used {usedGenerations} of {maxGenerations} generations this month.
-              Upgrade to continue generating stores.
-            </Text>
-          </Banner>
+          {isImportContext ? (
+            <Banner tone="info">
+              <BlockStack gap="200">
+                <Text as="p" fontWeight="semibold">
+                  Your store is ready to launch!
+                </Text>
+                <Text as="p">
+                  Upgrade now to import your custom theme and products to Shopify.
+                </Text>
+              </BlockStack>
+            </Banner>
+          ) : (
+            <Banner tone="warning">
+              <Text as="p">
+                You&apos;ve used {usedGenerations} of {maxGenerations} generations this month.
+                Upgrade to continue generating stores.
+              </Text>
+            </Banner>
+          )}
 
           <BlockStack gap="300">
             <Text as="h3" variant="headingMd">
@@ -131,6 +153,17 @@ export function UpgradeModal({
               </Text>
             ))}
           </BlockStack>
+
+          {isImportContext && (
+            <BlockStack gap="100">
+              <Text as="p" tone="subdued" variant="bodySm">
+                You&apos;ve built something great. Don&apos;t let it sit in draft mode.
+              </Text>
+              <Text as="p" tone="subdued" variant="bodySm">
+                One-click import. Cancel anytime.
+              </Text>
+            </BlockStack>
+          )}
 
           <Text as="p" tone="subdued" variant="bodySm">
             You will be redirected to Shopify to complete the payment.

@@ -11,16 +11,20 @@ import {
   HeroContent,
   ProductPageContent,
   ContactPageContent,
+  FocusTarget,
   defaultHomepageContent,
   defaultStyleSettings,
   defaultProductPageContent,
   defaultContactPageContent,
 } from '@/types/editor';
 
+export type SessionStatus = 'editing' | 'imported';
+
 export interface EditorState {
   // Session
   sessionId: string | null;
   generationId: string | null;
+  sessionStatus: SessionStatus;
 
   // Content
   homepage: HomepageContent;
@@ -38,7 +42,11 @@ export interface EditorState {
   previewMode: PreviewMode;
   isDirty: boolean;
   isSaving: boolean;
+  isSessionLoaded: boolean; // True only after loadFromGeneration is called
   lastSavedAt: Date | null;
+
+  // Focus/Highlight
+  focusTarget: FocusTarget | null;
 
   // Actions - Homepage
   setHomepage: (homepage: HomepageContent) => void;
@@ -59,6 +67,11 @@ export interface EditorState {
   updateColor: (key: keyof StyleSettings['colors'], value: string) => void;
   updateFont: (key: keyof StyleSettings['typography'], value: string) => void;
 
+  // Actions - Product Images
+  reorderProductImages: (productId: string, startIndex: number, endIndex: number) => void;
+  addProductImage: (productId: string, imageUrl: string) => void;
+  removeProductImage: (productId: string, imageUrl: string) => void;
+
   // Actions - Product Page
   selectProductForPage: (productId: string | null) => void;
   updateProductPageLayout: (layout: Partial<ProductPageContent['layout']>) => void;
@@ -78,6 +91,7 @@ export interface EditorState {
   setActivePage: (page: EditorPage) => void;
   setActiveTab: (tab: EditorTab) => void;
   setPreviewMode: (mode: PreviewMode) => void;
+  setFocusTarget: (target: FocusTarget | null) => void;
 
   // Actions - Session
   loadFromGeneration: (data: {
@@ -87,6 +101,7 @@ export interface EditorState {
     products: EditableProduct[] | null;
     styles: StyleSettings | null;
     selectedThemeId?: string;
+    status?: SessionStatus;
   }) => void;
   markSaved: () => void;
   setSaving: (saving: boolean) => void;
@@ -96,6 +111,7 @@ export interface EditorState {
 const initialState = {
   sessionId: null,
   generationId: null,
+  sessionStatus: 'editing' as SessionStatus,
   homepage: defaultHomepageContent,
   products: [],
   styles: defaultStyleSettings,
@@ -107,7 +123,9 @@ const initialState = {
   previewMode: 'desktop' as PreviewMode,
   isDirty: false,
   isSaving: false,
+  isSessionLoaded: false,
   lastSavedAt: null,
+  focusTarget: null,
 };
 
 export const useEditorStore = create<EditorState>()(
@@ -222,6 +240,54 @@ export const useEditorStore = create<EditorState>()(
           isDirty: true,
         })),
 
+      // Product Image Actions
+      reorderProductImages: (productId, startIndex, endIndex) =>
+        set((state) => ({
+          products: state.products.map((product) => {
+            if (product.id !== productId) return product;
+            const imageUrls = [...(product.imageUrls || [])];
+            const [removed] = imageUrls.splice(startIndex, 1);
+            imageUrls.splice(endIndex, 0, removed);
+            return {
+              ...product,
+              imageUrls,
+              // Update primary imageUrl to first image
+              imageUrl: imageUrls[0],
+            };
+          }),
+          isDirty: true,
+        })),
+
+      addProductImage: (productId, imageUrl) =>
+        set((state) => ({
+          products: state.products.map((product) => {
+            if (product.id !== productId) return product;
+            const imageUrls = [...(product.imageUrls || []), imageUrl];
+            return {
+              ...product,
+              imageUrls,
+              // Set primary imageUrl if this is the first image
+              imageUrl: product.imageUrl || imageUrl,
+            };
+          }),
+          isDirty: true,
+        })),
+
+      removeProductImage: (productId, imageUrl) =>
+        set((state) => ({
+          products: state.products.map((product) => {
+            if (product.id !== productId) return product;
+            const imageUrls = (product.imageUrls || []).filter((url) => url !== imageUrl);
+            return {
+              ...product,
+              imageUrls,
+              // Update primary imageUrl if it was removed
+              imageUrl: product.imageUrl === imageUrl ? imageUrls[0] : product.imageUrl,
+            };
+          }),
+          isDirty: true,
+        })),
+
       // Product Page Actions
       selectProductForPage: (productId) =>
         set((state) => ({
@@ -314,6 +380,9 @@ export const useEditorStore = create<EditorState>()(
       setPreviewMode: (previewMode) =>
         set({ previewMode }),
 
+      setFocusTarget: (focusTarget) =>
+        set({ focusTarget }),
+
       // Session Actions
       loadFromGeneration: (data) => {
         const loadedProducts = data.products || [];
@@ -322,6 +391,7 @@ export const useEditorStore = create<EditorState>()(
         set({
           sessionId: data.sessionId,
           generationId: data.generationId,
+          sessionStatus: data.status || 'editing',
           homepage: data.homepage || defaultHomepageContent,
           products: loadedProducts,
           styles: data.styles || defaultStyleSettings,
@@ -331,6 +401,7 @@ export const useEditorStore = create<EditorState>()(
             selectedProductId,
           },
           isDirty: false,
+          isSessionLoaded: true,
           lastSavedAt: new Date(),
         });
       },
@@ -357,6 +428,7 @@ export const useEditorStore = create<EditorState>()(
       partialize: (state) => ({
         sessionId: state.sessionId,
         generationId: state.generationId,
+        sessionStatus: state.sessionStatus,
         homepage: state.homepage,
         products: state.products,
         styles: state.styles,
@@ -367,6 +439,18 @@ export const useEditorStore = create<EditorState>()(
         activeTab: state.activeTab,
         previewMode: state.previewMode,
       }),
+      // Merge persisted state with initial state to handle missing fields from old data
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<EditorState>),
+        // Ensure sessionStatus has a default if missing from old persisted data
+        sessionStatus: (persistedState as Partial<EditorState>)?.sessionStatus || 'editing',
+        // Always start with isSessionLoaded=false - must be set by loadFromGeneration
+        isSessionLoaded: false,
+        // Reset dirty state on page load to prevent stale auto-saves
+        isDirty: false,
+      }),
     }
   )
 );
+

@@ -84,6 +84,7 @@ export const EditableProductSchema = z.object({
   compareAtPrice: z.number().optional(),
   tags: z.array(z.string()),
   imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).optional(),
   vendor: z.string().optional(),
 });
 
@@ -107,9 +108,17 @@ export const StyleSettingsSchema = z.object({
 export type StyleSettings = z.infer<typeof StyleSettingsSchema>;
 
 // Editor Session Types
-export type EditorTab = 'homepage' | 'products' | 'styles';
+export type EditorTab = 'homepage' | 'products' | 'styles' | 'medias';
 export type PreviewMode = 'desktop' | 'mobile';
 export type EditorSessionStatus = 'editing' | 'importing' | 'imported';
+
+// Focus Target for highlighting elements in preview
+export interface FocusTarget {
+  type: 'hero' | 'section' | 'product' | 'contact';
+  field: string;       // e.g., 'title', 'subtitle', 'ctaText'
+  itemId?: string;     // For sections/products - the specific item ID
+  subItemId?: string;  // For nested items (feature items, testimonials)
+}
 
 // Page Types (for multi-page editor)
 export type EditorPage = 'home' | 'product' | 'contact';

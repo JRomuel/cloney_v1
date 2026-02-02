@@ -152,10 +152,16 @@ export async function incrementGenerationCount(
 
 /**
  * Enforce generation limit - throws PlanLimitError if limit reached
+ * Set ENFORCE_GENERATION_LIMIT=true in .env to enable limit checking
  */
 export async function enforceGenerationLimit(
   shopDomain: string
 ): Promise<void> {
+  // Skip limit check unless explicitly enabled
+  if (process.env.ENFORCE_GENERATION_LIMIT !== 'true') {
+    return;
+  }
+
   const check = await checkGenerationLimit(shopDomain);
 
   if (!check.allowed) {
@@ -215,8 +221,14 @@ export async function checkPaidPlan(shopDomain: string): Promise<{
 
 /**
  * Enforce paid plan requirement - throws PlanLimitError if on free plan
+ * Set BYPASS_BILLING=true in .env to skip this check (for development/testing)
  */
 export async function enforcePaidPlan(shopDomain: string): Promise<void> {
+  // Bypass for development/testing
+  if (process.env.BYPASS_BILLING === 'true') {
+    return;
+  }
+
   const { hasPaidPlan, plan } = await checkPaidPlan(shopDomain);
 
   if (!hasPaidPlan) {

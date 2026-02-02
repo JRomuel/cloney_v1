@@ -182,7 +182,7 @@ function extractImages(
     images.push({ src: absoluteSrc, alt });
   });
 
-  return images.slice(0, 20);
+  return images.slice(0, 30);
 }
 
 function extractProducts(
@@ -193,15 +193,29 @@ function extractProducts(
   description?: string;
   price?: string;
   imageUrl?: string;
+  imageUrls?: string[];
 }> {
   const products: Array<{
     name: string;
     description?: string;
     price?: string;
     imageUrl?: string;
+    imageUrls?: string[];
   }> = [];
 
-  // Look for common product card patterns
+  // Check if this is a single product page (e.g., /products/...)
+  const isSingleProductPage = /\/products?\/[^/]+/.test(baseUrl);
+
+  if (isSingleProductPage) {
+    // Extract single product from product detail page
+    const singleProduct = extractSingleProduct($, baseUrl);
+    if (singleProduct) {
+      products.push(singleProduct);
+      return products;
+    }
+  }
+
+  // Look for common product card patterns (for collection pages)
   const productSelectors = [
     '.product',
     '.product-card',
@@ -238,21 +252,194 @@ function extractProducts(
       .trim()
       .substring(0, 200);
 
-    // Extract image
-    const imgSrc =
-      $el.find('img').attr('src') ||
-      $el.find('img').attr('data-src');
-    const imageUrl = imgSrc ? resolveUrl(imgSrc, baseUrl) : undefined;
+    // Extract up to 6 images per product
+    const imageUrls: string[] = [];
+    const seenUrls = new Set<string>();
+
+    $el.find('img').each((_, imgEl) => {
+      if (imageUrls.length >= 6) return false; // Stop after 6 images
+
+      const imgSrc =
+        $(imgEl).attr('src') ||
+        $(imgEl).attr('data-src') ||
+        $(imgEl).attr('data-lazy-src');
+
+      if (!imgSrc) return;
+
+      const absoluteUrl = resolveUrl(imgSrc, baseUrl);
+      if (seenUrls.has(absoluteUrl)) return;
+      seenUrls.add(absoluteUrl);
+
+      // Skip tiny images
+      const width = parseInt($(imgEl).attr('width') || '0', 10);
+      const height = parseInt($(imgEl).attr('height') || '0', 10);
+      if ((width > 0 && width < 50) || (height > 0 && height < 50)) return;
+
+      imageUrls.push(absoluteUrl);
+    });
+
+    const imageUrl = imageUrls[0];
 
     products.push({
       name,
       description: description || undefined,
       price: price || undefined,
       imageUrl,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
     });
   });
 
   return products;
+}
+
+function extractSingleProduct(
+  $: cheerio.CheerioAPI,
+  baseUrl: string
+): {
+  name: string;
+  description?: string;
+  price?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
+} | null {
+  // Try to find product title from various common selectors
+  const titleSelectors = [
+    '.product__title',
+    '.product-title',
+    '.product-single__title',
+    '.product-info__title',
+    '[data-product-title]',
+    'h1.title',
+    '.product h1',
+    'h1',
+  ];
+
+  let name = '';
+  for (const selector of titleSelectors) {
+    // Get text and normalize whitespace (collapse multiple spaces/newlines to single space)
+    const rawText = $(selector).first().text().trim();
+    const text = rawText.replace(/\s+/g, ' ').trim();
+    // Take only the first line/sentence to avoid nested content pollution
+    const cleanText = text.split(/[|\-–—]/).shift()?.trim() || text;
+
+    if (cleanText && cleanText.length > 2 && cleanText.length < 200) {
+      name = cleanText;
+      break;
+    }
+  }
+
+  if (!name) return null;
+
+  // Extract price
+  const priceSelectors = [
+    '.product__price',
+    '.product-price',
+    '.price',
+    '.product-single__price',
+    '[data-product-price]',
+    '.money',
+    '[class*="price"]',
+  ];
+
+  let price: string | undefined;
+  for (const selector of priceSelectors) {
+    const priceText = $(selector).first().text().trim();
+    const priceMatch = priceText.match(/[\d,.]+/);
+    if (priceMatch) {
+      price = priceMatch[0];
+      break;
+    }
+  }
+
+  // Extract description
+  const descSelectors = [
+    '.product__description',
+    '.product-description',
+    '.product-single__description',
+    '.product-info__description',
+    '[data-product-description]',
+    '.rte',
+    '.product-details',
+  ];
+
+  let description: string | undefined;
+  for (const selector of descSelectors) {
+    const text = $(selector).first().text().trim();
+    if (text && text.length > 10) {
+      description = text.substring(0, 500);
+      break;
+    }
+  }
+
+  // Extract product images
+  const imageUrls: string[] = [];
+  const seenUrls = new Set<string>();
+
+  // Look for product gallery images
+  const imageSelectors = [
+    '.product__media img',
+    '.product-gallery img',
+    '.product-single__photo img',
+    '.product-images img',
+    '[data-product-media] img',
+    '.product-photo-container img',
+    '.product__image img',
+    '.product-featured-img',
+  ];
+
+  for (const selector of imageSelectors) {
+    $(selector).each((_, imgEl) => {
+      if (imageUrls.length >= 6) return false;
+
+      const imgSrc =
+        $(imgEl).attr('src') ||
+        $(imgEl).attr('data-src') ||
+        $(imgEl).attr('data-lazy-src') ||
+        $(imgEl).attr('data-zoom');
+
+      if (!imgSrc) return;
+
+      const absoluteUrl = resolveUrl(imgSrc, baseUrl);
+      if (seenUrls.has(absoluteUrl)) return;
+      seenUrls.add(absoluteUrl);
+
+      imageUrls.push(absoluteUrl);
+    });
+
+    if (imageUrls.length > 0) break;
+  }
+
+  // Fallback: try to find any large images in the main content area
+  if (imageUrls.length === 0) {
+    $('main img, .product img, [role="main"] img').each((_, imgEl) => {
+      if (imageUrls.length >= 6) return false;
+
+      const imgSrc =
+        $(imgEl).attr('src') ||
+        $(imgEl).attr('data-src');
+
+      if (!imgSrc) return;
+
+      const absoluteUrl = resolveUrl(imgSrc, baseUrl);
+      if (seenUrls.has(absoluteUrl)) return;
+
+      // Skip tiny images
+      const width = parseInt($(imgEl).attr('width') || '0', 10);
+      const height = parseInt($(imgEl).attr('height') || '0', 10);
+      if ((width > 0 && width < 100) || (height > 0 && height < 100)) return;
+
+      seenUrls.add(absoluteUrl);
+      imageUrls.push(absoluteUrl);
+    });
+  }
+
+  return {
+    name,
+    description,
+    price,
+    imageUrl: imageUrls[0],
+    imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+  };
 }
 
 function extractLogo($: cheerio.CheerioAPI, baseUrl: string): string | undefined {

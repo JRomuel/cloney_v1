@@ -11,6 +11,7 @@ import {
   Spinner,
 } from '@shopify/polaris';
 import { useEditorStore } from '@/stores/editorStore';
+import { UpgradeModal } from '@/components/billing/UpgradeModal';
 
 interface ImportButtonProps {
   shopDomain: string;
@@ -29,6 +30,7 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
     productsCreated?: number;
     error?: string;
   } | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const shopSlug = shopDomain.replace('.myshopify.com', '');
 
@@ -61,9 +63,10 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
       const data = await response.json();
 
       if (!response.ok) {
-        // Redirect to pricing page if plan is required
+        // Show upgrade modal if plan is required
         if (data.code === 'PLAN_REQUIRED') {
-          window.location.href = `/pricing?shop=${encodeURIComponent(shopDomain)}`;
+          setIsModalOpen(false);
+          setShowUpgradeModal(true);
           return;
         }
         throw new Error(data.error || 'Import failed');
@@ -198,6 +201,14 @@ export function ImportButton({ shopDomain, onSuccess, onError }: ImportButtonPro
           )}
         </Modal.Section>
       </Modal>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentPlan="free"
+        shopDomain={shopDomain}
+        context="import-required"
+      />
     </>
   );
 }

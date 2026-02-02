@@ -14,6 +14,7 @@ import {
 } from '@shopify/polaris';
 import { ChevronDownIcon, ChevronUpIcon, DeleteIcon, ImageIcon } from '@shopify/polaris-icons';
 import { useEditorStore } from '@/stores/editorStore';
+import { FocusableTextField } from '../common/FocusableTextField';
 import { EditableProduct } from '@/types/editor';
 
 interface ProductCardProps {
@@ -83,20 +84,22 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <Collapsible open={isOpen} id={`product-${product.id}`}>
           <BlockStack gap="300">
-            <TextField
+            <FocusableTextField
               label="Title"
               value={product.title}
               onChange={(value) => updateProduct(product.id, { title: value })}
               autoComplete="off"
+              focusTarget={{ type: 'product', field: 'title', itemId: product.id }}
             />
-            <TextField
+            <FocusableTextField
               label="Description"
               value={product.description}
               onChange={(value) => updateProduct(product.id, { description: value })}
               multiline={4}
               autoComplete="off"
+              focusTarget={{ type: 'product', field: 'description', itemId: product.id }}
             />
-            <TextField
+            <FocusableTextField
               label="Price"
               type="number"
               value={product.price.toString()}
@@ -105,8 +108,9 @@ export function ProductCard({ product }: ProductCardProps) {
               }
               prefix="$"
               autoComplete="off"
+              focusTarget={{ type: 'product', field: 'price', itemId: product.id }}
             />
-            <TextField
+            <FocusableTextField
               label="Image URL"
               value={product.imageUrl || ''}
               onChange={(value) =>
@@ -114,6 +118,7 @@ export function ProductCard({ product }: ProductCardProps) {
               }
               type="url"
               autoComplete="off"
+              focusTarget={{ type: 'product', field: 'imageUrl', itemId: product.id }}
             />
             <TextField
               label="Vendor (optional)"

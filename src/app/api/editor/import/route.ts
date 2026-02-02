@@ -5,6 +5,7 @@ import { createTheme, updateThemeSettings, updateThemeHomepage, generateThemeNam
 import { createProducts } from '@/lib/shopify/product';
 import { createCollectionWithProducts } from '@/lib/shopify/collection';
 import { generateHomepageJson } from '@/lib/shopify/homepageGenerator';
+import { isExternalUrl, uploadImageFromUrl } from '@/lib/shopify/files';
 import { decrypt } from '@/lib/utils/encryption';
 import { ThemeSettings, GeneratedProduct } from '@/types';
 import { StyleSettings, EditableProduct, HomepageContent } from '@/types/editor';
@@ -228,6 +229,8 @@ export async function POST(request: NextRequest) {
     // NOTE: No try-catch here - let errors propagate so users know if homepage upload failed
     // The outer try-catch will handle it and return a proper error response
     let homepageVerified = false;
+    let heroImageUrl: string | undefined;
+
     if (homepage) {
       console.log(`[Import] Homepage data preview:`, JSON.stringify(homepage, null, 2).substring(0, 500));
 
@@ -236,12 +239,37 @@ export async function POST(request: NextRequest) {
         console.warn(`[Import] WARNING: Homepage hero title is missing or empty`);
       }
 
+      // Upload hero background image if it's an external URL
+      if (homepage.hero?.backgroundImage && isExternalUrl(homepage.hero.backgroundImage)) {
+        console.log(`[Import] Uploading hero background image: ${homepage.hero.backgroundImage}`);
+        try {
+          const uploaded = await uploadImageFromUrl(
+            client,
+            homepage.hero.backgroundImage,
+            'Hero background'
+          );
+          if (uploaded) {
+            heroImageUrl = uploaded.shopifyUrl;
+            console.log(`[Import] Hero image uploaded successfully: ${heroImageUrl}`);
+          } else {
+            console.warn(`[Import] Hero image upload returned null, continuing without image`);
+          }
+        } catch (err) {
+          // Non-blocking - continue import without the hero image
+          console.warn(
+            `[Import] Hero image upload failed, continuing without image:`,
+            err instanceof Error ? err.message : err
+          );
+        }
+      }
+
       console.log(`[Import] Generating homepage JSON`);
       const productsSectionTitle = products.length > 0 ? 'Featured Products' : undefined;
       const homepageJson = generateHomepageJson(
         homepage as HomepageContent,
         collectionHandle,
-        productsSectionTitle
+        productsSectionTitle,
+        heroImageUrl
       );
 
       // Log detailed JSON structure for debugging
@@ -285,7 +313,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`[Import] Complete! Theme: ${theme.name}, Products: ${productsCreated}, Collection: ${collectionHandle || 'none'}, Homepage: ${homepage ? (homepageVerified ? 'verified' : 'uploaded but NOT verified') : 'no'}, Settings: uploaded with color schemes`);
+    console.log(`[Import] Complete! Theme: ${theme.name}, Products: ${productsCreated}, Collection: ${collectionHandle || 'none'}, Homepage: ${homepage ? (homepageVerified ? 'verified' : 'uploaded but NOT verified') : 'no'}, Hero image: ${heroImageUrl ? 'uploaded' : 'none'}, Settings: uploaded with color schemes`);
 
     return NextResponse.json({
       success: true,
@@ -295,6 +323,7 @@ export async function POST(request: NextRequest) {
       collectionHandle: collectionHandle || null,
       homepageUploaded: !!homepage,
       homepageVerified,
+      heroImageUploaded: !!heroImageUrl,
       settingsUploaded: true, // Always uploaded (required for color schemes)
       customStyles: !!styles,
     });

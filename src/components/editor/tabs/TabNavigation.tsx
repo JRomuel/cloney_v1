@@ -8,6 +8,7 @@ const TABS: Array<{ id: EditorTab; content: string }> = [
   { id: 'homepage', content: 'Homepage' },
   { id: 'products', content: 'Products' },
   { id: 'styles', content: 'Styles' },
+  { id: 'medias', content: 'Medias' },
 ];
 
 export function TabNavigation() {

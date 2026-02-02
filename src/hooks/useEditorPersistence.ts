@@ -6,6 +6,8 @@ const AUTO_SAVE_DELAY = 2000; // 2 seconds debounce
 export function useEditorPersistence() {
   const {
     sessionId,
+    sessionStatus,
+    isSessionLoaded,
     homepage,
     products,
     styles,
@@ -16,11 +18,15 @@ export function useEditorPersistence() {
     markSaved,
   } = useEditorStore();
 
+  // Only allow saves after session is explicitly loaded from API
+  // This prevents stale localStorage state from triggering saves
+  const isReadOnly = !isSessionLoaded || sessionStatus === 'imported';
+
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedDataRef = useRef<string | null>(null);
 
   const saveToServer = useCallback(async () => {
-    if (!sessionId || isSaving) return;
+    if (!sessionId || isSaving || isReadOnly) return;
 
     // Create a hash of current data to avoid duplicate saves
     const dataHash = JSON.stringify({ homepage, products, styles, selectedThemeId });
@@ -48,7 +54,7 @@ export function useEditorPersistence() {
       console.error('[AutoSave] Failed to save:', error);
       setSaving(false);
     }
-  }, [sessionId, homepage, products, styles, selectedThemeId, isSaving, setSaving, markSaved]);
+  }, [sessionId, homepage, products, styles, selectedThemeId, isSaving, isReadOnly, setSaving, markSaved]);
 
   // Debounced auto-save effect
   useEffect(() => {
@@ -72,10 +78,10 @@ export function useEditorPersistence() {
     };
   }, [isDirty, sessionId, saveToServer]);
 
-  // Save on unmount if dirty
+  // Save on unmount if dirty (skip for read-only/imported sessions)
   useEffect(() => {
     return () => {
-      if (isDirty && sessionId) {
+      if (isDirty && sessionId && !isReadOnly) {
         // Perform a synchronous save attempt on unmount
         navigator.sendBeacon?.(
           `/api/editor/session/${sessionId}`,
@@ -83,11 +89,12 @@ export function useEditorPersistence() {
         );
       }
     };
-  }, [isDirty, sessionId, homepage, products, styles, selectedThemeId]);
+  }, [isDirty, sessionId, homepage, products, styles, selectedThemeId, isReadOnly]);
 
   return {
     saveNow: saveToServer,
     isSaving,
     isDirty,
+    isReadOnly,
   };
 }

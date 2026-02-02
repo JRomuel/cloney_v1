@@ -41,14 +41,29 @@ const RelaxedProductSchema = z.object({
   }),
   tags: z.array(z.string()).optional().default([]),
   imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).optional(),
   vendor: z.string().optional(),
   productType: z.string().optional(),
 });
 
+function stripMarkdownCodeBlocks(text: string): string {
+  let cleanText = text.trim();
+  // Handle ```json or ``` code blocks
+  if (cleanText.startsWith('```')) {
+    cleanText = cleanText
+      .replace(/^```(?:json|javascript|js)?\s*\n?/, '')
+      .replace(/\n?```\s*$/, '');
+  }
+  return cleanText;
+}
+
 export function parseThemeResponse(response: string): ThemeSettings {
   try {
+    // Strip markdown code blocks if present
+    const cleanResponse = stripMarkdownCodeBlocks(response);
+
     // Try to extract JSON from the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new AIGenerationError('No JSON found in theme response');
     }
@@ -87,10 +102,14 @@ export function parseProductsResponse(response: string): GeneratedProduct[] {
   try {
     console.log('[Parser] Parsing products response, length:', response.length);
 
+    // Strip markdown code blocks if present
+    const cleanResponse = stripMarkdownCodeBlocks(response);
+    console.log('[Parser] Cleaned response (first 200 chars):', cleanResponse.substring(0, 200));
+
     // Try to extract JSON from the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('[Parser] No JSON found in response:', response.substring(0, 500));
+      console.error('[Parser] No JSON found in response:', cleanResponse.substring(0, 500));
       throw new AIGenerationError('No JSON found in products response');
     }
 
@@ -129,6 +148,7 @@ export function parseProductsResponse(response: string): GeneratedProduct[] {
           price: validated.price as number,
           tags: validated.tags || [],
           imageUrl: validated.imageUrl,
+          imageUrls: validated.imageUrls,
           vendor: validated.vendor,
           productType: validated.productType,
         });

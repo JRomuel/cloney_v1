@@ -9,6 +9,21 @@ const GenerateRequestSchema = z.object({
   url: z.string().url('Invalid URL format'),
 });
 
+// Validate URL is a product page, not a homepage
+function isProductPageUrl(url: string): boolean {
+  const productPatterns = [
+    /\/product[s]?\//i,
+    /\/item[s]?\//i,
+    /\/p\//i,
+    /\/dp\//i,  // Amazon pattern
+    /\/(shop|store)\/[^/]+\/[^/]+/i,  // /shop/category/product
+    /[?&](product|item|id)=/i,
+  ];
+
+  // Check if URL matches any product pattern
+  return productPatterns.some(pattern => pattern.test(url));
+}
+
 export async function POST(request: NextRequest) {
   try {
     // For embedded apps, the shop is passed via session or header
@@ -36,6 +51,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { url } = parseResult.data;
+
+    // Validate URL is a product page, not a homepage
+    if (!isProductPageUrl(url)) {
+      throw new ValidationError('Please enter a product page URL, not a homepage');
+    }
 
     // Get shop context (including decrypted access token)
     const shopContext = await getShopContext(shopDomain);

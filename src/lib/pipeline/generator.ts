@@ -101,22 +101,45 @@ export async function runGenerationPipeline(
     await updateGenerationStatus(generationId, 'analyzing', 45);
     console.log(`[Pipeline] Theme settings generated: ${themeSettings.brandName}`);
 
-    // Step 3: Generate products with AI
-    console.log(`[Pipeline] Generating products with AI...`);
+    // Step 3: Generate products - use scraped data directly when available
+    console.log(`[Pipeline] Processing products...`);
     await updateGenerationStatus(generationId, 'analyzing', 50);
 
-    const productPrompt = buildProductPrompt(scrapedData);
-    console.log(`[Pipeline] Product prompt:`, productPrompt.substring(0, 500));
+    // If scraper found products, use them directly as base
+    if (scrapedData.products.length > 0) {
+      console.log(`[Pipeline] Using ${scrapedData.products.length} scraped products directly`);
+      const brandName = themeSettings?.brandName || 'Store';
+      products = scrapedData.products.map((p) => {
+        // Ensure imageUrl is set - use first from imageUrls if not provided
+        const imageUrl = p.imageUrl || (p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls[0] : undefined);
+        return {
+          title: p.name,
+          description: p.description || `${p.name} from ${brandName}`,
+          price: parseFloat(p.price?.replace(/[^0-9.]/g, '') || '0') || 9.99,
+          tags: [],
+          imageUrl,
+          imageUrls: p.imageUrls,
+          vendor: brandName,
+          productType: 'General',
+        };
+      });
+      console.log(`[Pipeline] Converted scraped products:`, JSON.stringify(products, null, 2));
+    } else {
+      // Fall back to AI generation only if no products scraped
+      console.log(`[Pipeline] No scraped products found, generating with AI...`);
+      const productPrompt = buildProductPrompt(scrapedData);
+      console.log(`[Pipeline] Product prompt:`, productPrompt.substring(0, 500));
 
-    const productResponse = await createCompletion({
-      prompt: productPrompt,
-      systemPrompt: PRODUCT_GENERATION_SYSTEM_PROMPT,
-      responseFormat: 'json',
-    });
+      const productResponse = await createCompletion({
+        prompt: productPrompt,
+        systemPrompt: PRODUCT_GENERATION_SYSTEM_PROMPT,
+        responseFormat: 'json',
+      });
 
-    console.log(`[Pipeline] AI product response (full):`, productResponse);
-    products = parseProductsResponse(productResponse);
-    console.log(`[Pipeline] Parsed products:`, products.length);
+      console.log(`[Pipeline] AI product response (full):`, productResponse);
+      products = parseProductsResponse(productResponse);
+    }
+    console.log(`[Pipeline] Final products count:`, products.length);
 
     await updateGenerationStatus(generationId, 'analyzing', 60, {
       aiResponse: JSON.stringify({ theme: themeSettings, products }),

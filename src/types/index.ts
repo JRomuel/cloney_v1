@@ -32,6 +32,7 @@ export const ScrapedDataSchema = z.object({
     description: z.string().optional(),
     price: z.string().optional(),
     imageUrl: z.string().optional(),
+    imageUrls: z.array(z.string()).optional(),
   })),
   bodyText: z.string().optional(),
   logoUrl: z.string().optional(),
@@ -68,6 +69,7 @@ export const GeneratedProductSchema = z.object({
   price: z.number().positive(),
   tags: z.array(z.string()),
   imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).optional(),
   vendor: z.string().optional(),
   productType: z.string().optional(),
 });

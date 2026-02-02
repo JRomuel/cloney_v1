@@ -81,7 +81,10 @@ Generate theme settings that capture this website's visual identity.`;
 export function buildProductPrompt(scrapedData: ScrapedData): string {
   const existingProducts = scrapedData.products.length > 0
     ? `\nExisting Products Found:\n${scrapedData.products
-        .map((p) => `- ${p.name}: ${p.price || 'No price'} - ${p.description || 'No description'}`)
+        .map((p) => {
+          const images = p.imageUrls?.slice(0, 3).join(', ') || p.imageUrl || 'No image';
+          return `- ${p.name}: ${p.price || 'No price'}\n  Description: ${p.description || 'No description'}\n  Images: ${images}`;
+        })
         .join('\n')}`
     : '';
 
