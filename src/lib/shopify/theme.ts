@@ -729,5 +729,71 @@ export async function updateThemeHomepage(
   return { verified };
 }
 
+// Mutation to publish/activate a theme
+const THEME_PUBLISH_MUTATION = `
+  mutation themePublish($id: ID!) {
+    themePublish(id: $id) {
+      theme {
+        id
+        name
+        role
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+interface ThemePublishResponse {
+  themePublish: {
+    theme: {
+      id: string;
+      name: string;
+      role: string;
+    } | null;
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+/**
+ * Publish a theme to make it the active/main theme.
+ * This replaces the current live theme.
+ */
+export async function publishTheme(
+  client: ShopifyGraphQLClient,
+  themeId: string
+): Promise<{ id: string; name: string; role: string }> {
+  console.log(`[Theme] Publishing theme ${themeId} as the main theme...`);
+
+  const response = await client.mutate<ThemePublishResponse>(
+    THEME_PUBLISH_MUTATION,
+    { id: themeId }
+  );
+
+  if (response.themePublish.userErrors.length > 0) {
+    const errors = response.themePublish.userErrors
+      .map((e) => e.message)
+      .join(', ');
+    throw new ShopifyApiError(`Failed to publish theme: ${errors}`);
+  }
+
+  if (!response.themePublish.theme) {
+    throw new ShopifyApiError('Theme publish returned no theme');
+  }
+
+  console.log(`[Theme] Theme published successfully: ${response.themePublish.theme.name} (role: ${response.themePublish.theme.role})`);
+
+  return {
+    id: response.themePublish.theme.id,
+    name: response.themePublish.theme.name,
+    role: response.themePublish.theme.role,
+  };
+}
+
 // Export for use in other modules
 export { findDawnLikeTheme };

@@ -65,7 +65,10 @@ interface FileQueryResponse {
 
 export interface UploadedImage {
   fileId: string;
+  /** CDN URL for serving the image (e.g., https://cdn.shopify.com/...) */
   shopifyUrl: string;
+  /** Theme settings reference format (e.g., shopify://shop_images/filename.jpg) */
+  themeSettingsUrl: string;
 }
 
 /**
@@ -186,9 +189,18 @@ async function waitForFileProcessing(
       case 'READY':
         // File is processed and ready
         if (node.image?.url) {
+          // Extract filename from CDN URL to build theme settings reference
+          // CDN URL format: https://cdn.shopify.com/s/files/1/.../files/filename.ext
+          const cdnUrl = node.image.url;
+          const filename = extractFilenameFromCdnUrl(cdnUrl);
+          const themeSettingsUrl = filename
+            ? `shopify://shop_images/${filename}`
+            : cdnUrl; // Fallback to CDN URL if extraction fails
+
           return {
             fileId: node.id,
-            shopifyUrl: node.image.url,
+            shopifyUrl: cdnUrl,
+            themeSettingsUrl,
           };
         }
         console.error('[Files] File READY but no image URL found');
@@ -223,4 +235,31 @@ async function waitForFileProcessing(
  */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Extract filename from Shopify CDN URL
+ *
+ * CDN URLs are typically in the format:
+ * https://cdn.shopify.com/s/files/1/{shop_id}/files/{filename}.{ext}?v=...
+ *
+ * @param cdnUrl - The Shopify CDN URL
+ * @returns The filename with extension, or null if extraction fails
+ */
+function extractFilenameFromCdnUrl(cdnUrl: string): string | null {
+  try {
+    const url = new URL(cdnUrl);
+    // Remove query params and get the pathname
+    const pathname = url.pathname;
+    // Extract the last segment (filename)
+    const segments = pathname.split('/');
+    const filename = segments[segments.length - 1];
+    // Validate it looks like a filename
+    if (filename && filename.includes('.')) {
+      return filename;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

@@ -76,6 +76,11 @@ export function editorProductToShopify(product: EditableProduct, index: number):
     ? Math.round(product.compareAtPrice * 100)
     : null;
 
+  // Get all image URLs - prefer imageUrls array, fallback to single imageUrl
+  const allImageUrls = product.imageUrls?.length
+    ? product.imageUrls
+    : (product.imageUrl ? [product.imageUrl] : []);
+
   // Create mock variant with all required properties
   const variant = {
     id: index + 1,
@@ -94,48 +99,44 @@ export function editorProductToShopify(product: EditableProduct, index: number):
       max: null,
       increment: 1,
     },
-    // Variant-level image (same as product)
-    featured_image: product.imageUrl
-      ? createMockImage(product.imageUrl, product.title)
+    // Variant-level image (first image from allImageUrls)
+    featured_image: allImageUrls.length > 0
+      ? createMockImage(allImageUrls[0], product.title)
       : null,
   };
 
-  // Create mock media array (required by modern Shopify themes)
-  const media = product.imageUrl
-    ? [
-        {
-          id: index + 1,
-          media_type: 'image',
-          position: 1,
-          src: product.imageUrl,
-          width: 800,
-          height: 800,
-          aspect_ratio: 1,
-          alt: product.title,
-          preview_image: {
-            src: product.imageUrl,
-            width: 800,
-            height: 800,
-            aspect_ratio: 1,
-          },
-        },
-      ]
-    : [];
+  // Create mock media array with ALL images (required by modern Shopify themes)
+  const media = allImageUrls.map((url, imgIndex) => ({
+    id: imgIndex + 1,
+    media_type: 'image',
+    position: imgIndex + 1,
+    src: url,
+    width: 800,
+    height: 800,
+    aspect_ratio: 1,
+    alt: product.title,
+    preview_image: {
+      src: url,
+      width: 800,
+      height: 800,
+      aspect_ratio: 1,
+    },
+  }));
 
   // Create featured_media object (used by Dawn card-product.liquid template)
   // This is the first media item, used for product card images
-  const featuredMedia = product.imageUrl
+  const featuredMedia = allImageUrls.length > 0
     ? {
-        id: index + 1,
+        id: 1,
         media_type: 'image',
         position: 1,
-        src: product.imageUrl,
+        src: allImageUrls[0],
         width: 800,
         height: 800,
         aspect_ratio: 1,
         alt: product.title,
         preview_image: {
-          src: product.imageUrl,
+          src: allImageUrls[0],
           width: 800,
           height: 800,
           aspect_ratio: 1,
@@ -154,15 +155,13 @@ export function editorProductToShopify(product: EditableProduct, index: number):
     compare_at_price: compareAtPrice,
     compare_at_price_min: compareAtPrice,
     compare_at_price_max: compareAtPrice,
-    featured_image: product.imageUrl
-      ? createMockImage(product.imageUrl, product.title)
+    featured_image: allImageUrls.length > 0
+      ? createMockImage(allImageUrls[0], product.title)
       : null,
     // featured_media is required by Dawn's card-product.liquid template
     // It's the first media item and has additional properties for srcset generation
     featured_media: featuredMedia,
-    images: product.imageUrl
-      ? [createMockImage(product.imageUrl, product.title)]
-      : [],
+    images: allImageUrls.map(url => createMockImage(url, product.title)),
     // Media array for modern themes
     media,
     vendor: product.vendor || 'Store',

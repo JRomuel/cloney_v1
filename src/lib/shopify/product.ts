@@ -80,7 +80,7 @@ export async function createProduct(
     vendor: product.vendor || 'Cloney Generated',
     productType: product.productType || 'General',
     tags: product.tags || [],
-    status: 'DRAFT', // Create as draft, not active
+    status: 'ACTIVE', // Create as active, visible in store
   };
 
   const response = await client.mutate<ProductCreateResponse>(
@@ -117,7 +117,7 @@ export async function createProductWithVariant(
     vendor: product.vendor || 'Cloney Generated',
     productType: product.productType || 'General',
     tags: product.tags || [],
-    status: 'DRAFT',
+    status: 'ACTIVE',
     productOptions: [
       {
         name: 'Title',
@@ -209,4 +209,199 @@ function formatDescription(description: string): string {
     .join('\n');
 
   return paragraphs || `<p>${description}</p>`;
+}
+
+// Query to get available publications (sales channels)
+const PUBLICATIONS_QUERY = `
+  query publications {
+    publications(first: 10) {
+      nodes {
+        id
+        name
+      }
+    }
+  }
+`;
+
+// Mutation to publish a product to sales channels
+const PUBLISHABLE_PUBLISH_MUTATION = `
+  mutation publishablePublish($id: ID!, $input: [PublicationInput!]!) {
+    publishablePublish(id: $id, input: $input) {
+      publishable {
+        availablePublicationsCount {
+          count
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+interface PublicationsQueryResponse {
+  publications: {
+    nodes: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
+}
+
+interface PublishablePublishResponse {
+  publishablePublish: {
+    publishable: {
+      availablePublicationsCount: {
+        count: number;
+      };
+    } | null;
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+/**
+ * Publish a product to the Online Store sales channel.
+ * This makes the product visible on the storefront.
+ * Non-blocking on failure - logs warning and returns false.
+ */
+export async function publishProductToOnlineStore(
+  client: ShopifyGraphQLClient,
+  productId: string
+): Promise<boolean> {
+  try {
+    // First, get available publications to find Online Store
+    const pubResponse = await client.query<PublicationsQueryResponse>(PUBLICATIONS_QUERY);
+
+    const publications = pubResponse.publications.nodes;
+    const onlineStore = publications.find(
+      (p) => p.name === 'Online Store' || p.name.toLowerCase().includes('online store')
+    );
+
+    if (!onlineStore) {
+      console.warn(`[Product] Online Store publication not found. Available: ${publications.map(p => p.name).join(', ')}`);
+      return false;
+    }
+
+    // Publish the product to Online Store
+    const response = await client.mutate<PublishablePublishResponse>(
+      PUBLISHABLE_PUBLISH_MUTATION,
+      {
+        id: productId,
+        input: [{ publicationId: onlineStore.id }],
+      }
+    );
+
+    if (response.publishablePublish.userErrors.length > 0) {
+      const errors = response.publishablePublish.userErrors
+        .map((e) => e.message)
+        .join(', ');
+      console.warn(`[Product] Failed to publish product ${productId} to Online Store: ${errors}`);
+      return false;
+    }
+
+    console.log(`[Product] Published product ${productId} to Online Store`);
+    return true;
+  } catch (error) {
+    console.warn(
+      `[Product] Error publishing product ${productId}:`,
+      error instanceof Error ? error.message : error
+    );
+    return false;
+  }
+}
+
+// Mutation to add images to a product
+const PRODUCT_CREATE_MEDIA_MUTATION = `
+  mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+    productCreateMedia(productId: $productId, media: $media) {
+      media {
+        ... on MediaImage {
+          id
+          status
+        }
+      }
+      mediaUserErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+interface ProductCreateMediaResponse {
+  productCreateMedia: {
+    media: Array<{
+      id: string;
+      status: string;
+    }> | null;
+    mediaUserErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+/**
+ * Add images to a product from external URLs.
+ * Shopify will fetch and host the images automatically.
+ * Non-blocking on failure - logs warnings but continues.
+ */
+export async function addImagesToProduct(
+  client: ShopifyGraphQLClient,
+  productId: string,
+  imageUrls: string[]
+): Promise<{ added: number; failed: number }> {
+  if (!imageUrls || imageUrls.length === 0) {
+    return { added: 0, failed: 0 };
+  }
+
+  // Filter to valid URLs only
+  const validUrls = imageUrls.filter(url => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      console.warn(`[Product] Invalid image URL skipped: ${url}`);
+      return false;
+    }
+  });
+
+  if (validUrls.length === 0) {
+    return { added: 0, failed: 0 };
+  }
+
+  try {
+    const media = validUrls.map(url => ({
+      originalSource: url,
+      mediaContentType: 'IMAGE' as const,
+    }));
+
+    const response = await client.mutate<ProductCreateMediaResponse>(
+      PRODUCT_CREATE_MEDIA_MUTATION,
+      { productId, media }
+    );
+
+    if (response.productCreateMedia.mediaUserErrors.length > 0) {
+      const errors = response.productCreateMedia.mediaUserErrors
+        .map((e) => e.message)
+        .join(', ');
+      console.warn(`[Product] Some images failed to upload for ${productId}: ${errors}`);
+    }
+
+    const addedCount = response.productCreateMedia.media?.length || 0;
+    const failedCount = validUrls.length - addedCount;
+
+    console.log(`[Product] Added ${addedCount}/${validUrls.length} images to product ${productId}`);
+    return { added: addedCount, failed: failedCount };
+  } catch (error) {
+    console.warn(
+      `[Product] Failed to add images to product ${productId}:`,
+      error instanceof Error ? error.message : error
+    );
+    return { added: 0, failed: validUrls.length };
+  }
 }
