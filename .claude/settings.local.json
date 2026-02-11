@@ -20,7 +20,8 @@
       "Bash(npx prisma db push:*)",
       "Bash(npm run lint)",
       "Bash(npx prisma generate)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep:*)"
     ]
   }
 }

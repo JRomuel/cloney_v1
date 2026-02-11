@@ -745,6 +745,38 @@ class SliderComponent extends HTMLElement {
     this.slider.addEventListener('scroll', this.update.bind(this));
     this.prevButton.addEventListener('click', this.onButtonClick.bind(this));
     this.nextButton.addEventListener('click', this.onButtonClick.bind(this));
+
+    // Touch event handling for mobile swipe support
+    this.touchStartX = 0;
+    this.touchStartScrollLeft = 0;
+    this.isTouching = false;
+    this.slider.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: true });
+    this.slider.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: true });
+    this.slider.addEventListener('touchend', this.onTouchEnd.bind(this));
+  }
+
+  onTouchStart(event) {
+    if (event.touches.length > 1) return;
+    this.isTouching = true;
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartScrollLeft = this.slider.scrollLeft;
+  }
+
+  onTouchMove(event) {
+    if (!this.isTouching || event.touches.length > 1) return;
+    const touchX = event.touches[0].clientX;
+    const diff = this.touchStartX - touchX;
+    this.slider.scrollLeft = this.touchStartScrollLeft + diff;
+  }
+
+  onTouchEnd(event) {
+    if (!this.isTouching) return;
+    this.isTouching = false;
+    // Snap to nearest slide
+    if (this.sliderItemOffset) {
+      const slideIndex = Math.round(this.slider.scrollLeft / this.sliderItemOffset);
+      this.setSlidePosition(slideIndex * this.sliderItemOffset);
+    }
   }
 
   initPages() {

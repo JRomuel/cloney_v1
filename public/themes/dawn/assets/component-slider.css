@@ -42,6 +42,7 @@ slider-component.slider-component-full-width {
     scroll-padding-left: 1.5rem;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 1rem;
+    touch-action: pan-x pinch-zoom;
   }
 
   /* Fix to show some space at the end of our sliders in all browsers */
