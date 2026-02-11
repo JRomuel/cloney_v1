@@ -145,6 +145,10 @@ function ensureBuiltInMappers(): void {
   // Register Tinker mapper
   const { TinkerSectionMapper } = require('./TinkerSectionMapper');
   registry.register('tinker', TinkerSectionMapper);
+
+  // Register Alpha mapper
+  const { AlphaSectionMapper } = require('./AlphaSectionMapper');
+  registry.register('alpha', AlphaSectionMapper);
 }
 
 /**

@@ -178,6 +178,15 @@ export function getThemeRegistry(): ThemeRegistry {
       previewImage: '/themes/tinker/preview.png',
       source: 'bundled',
     });
+
+    // Register the bundled Alpha theme
+    themeRegistry.registerTheme('alpha', {
+      id: 'alpha',
+      name: 'Shopify Alpha',
+      version: '1.0.0',
+      previewImage: '/themes/alpha/preview.png',
+      source: 'bundled',
+    });
   }
   return themeRegistry;
 }

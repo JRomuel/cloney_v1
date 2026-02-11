@@ -79,7 +79,9 @@ export function ThemeSelector({ onContinue }: ThemeSelectorProps) {
                     height: '180px',
                     backgroundColor: theme.id === 'dawn'
                       ? '#f6f6f7'
-                      : '#fef6e4',
+                      : theme.id === 'alpha'
+                        ? '#e8f0fe'
+                        : '#fef6e4',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -131,6 +133,56 @@ export function ThemeSelector({ onContinue }: ThemeSelectorProps) {
                           backgroundColor: '#ccc',
                           borderRadius: '3px',
                           marginTop: '12px',
+                          marginLeft: 'auto',
+                          marginRight: 'auto',
+                        }}
+                      />
+                    </div>
+                  ) : theme.id === 'alpha' ? (
+                    // Alpha - Bold, contemporary style
+                    <div style={{ textAlign: 'center' }}>
+                      <div
+                        style={{
+                          width: '140px',
+                          height: '10px',
+                          background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+                          borderRadius: '5px',
+                          marginBottom: '16px',
+                        }}
+                      />
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '10px',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '55px',
+                            height: '55px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '8px',
+                            border: '2px solid #4f46e5',
+                          }}
+                        />
+                        <div
+                          style={{
+                            width: '55px',
+                            height: '55px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '8px',
+                            border: '2px solid #7c3aed',
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          width: '100px',
+                          height: '8px',
+                          background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+                          borderRadius: '4px',
+                          marginTop: '16px',
                           marginLeft: 'auto',
                           marginRight: 'auto',
                         }}
@@ -234,7 +286,9 @@ export function ThemeSelector({ onContinue }: ThemeSelectorProps) {
                     <Text as="p" tone="subdued" variant="bodySm">
                       {theme.id === 'dawn'
                         ? 'Clean, minimal design with excellent performance'
-                        : 'Modern, playful design with warm aesthetics'}
+                        : theme.id === 'alpha'
+                          ? 'Bold, contemporary design with refined details'
+                          : 'Modern, playful design with warm aesthetics'}
                     </Text>
                     <Text as="p" tone="subdued" variant="bodySm">
                       v{theme.version}

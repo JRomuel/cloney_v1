@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { getThemeRegistry, initializeDefaultTheme } from '@/lib/themes/core/ThemeRegistry';
+import { templateCache } from '@/lib/themes/core/TemplateCache';
 import type { LiquidEngine } from '@/lib/themes/core/LiquidEngine';
 import type { ThemeLoader } from '@/lib/themes/core/ThemeLoader';
 import type { ThemeManifest } from '@/lib/themes/types/theme.types';
@@ -42,6 +43,7 @@ export function useThemeEngine() {
     try {
       // Initialize the theme registry and load the selected theme
       await initializeDefaultTheme(selectedThemeId || 'dawn');
+      templateCache.clear();
 
       const registry = getThemeRegistry();
       const theme = registry.getActiveTheme();
@@ -96,6 +98,7 @@ export function useThemeEngine() {
 
     try {
       await registry.setActiveTheme(themeId);
+      templateCache.clear();
 
       const theme = registry.getActiveTheme();
       if (!theme) {
